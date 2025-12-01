@@ -1,8 +1,8 @@
 {
   "name": "kana-control",
   "private": false,
-  "version": "2.0.2",
-  "description": "A simple web component",
+  "version": "0.0.1",
+  "description": "Japanese IME web component (romaji→kana via WanaKana)",
   "main": "kana-control.js",
   "module": "kana-control.js",
   "type": "module",
