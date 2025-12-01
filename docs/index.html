@@ -29,38 +29,20 @@
     <div id="main-wrapper">
       <main>
         <h1>&lt;kana-control&gt;</h1>
-<p><code>&lt;kana-control&gt;</code> is an awesome element. It's a great introduction to building web components with LitElement, with nice documentation site as well.</p>
+<p><code>&lt;kana-control&gt;</code> is a tiny web component that provides a Japanese IME powered by WanaKana. Type romaji and it converts to kana inline.</p>
 <h2>As easy as HTML</h2>
 <section class="columns">
   <div>
-<p><code>&lt;kana-control&gt;</code> is just an HTML element. You can it anywhere you can use HTML!</p>
+<p>Add the element anywhere and start typing romaji (e.g. <code>konnnichiha</code>) — it becomes <code>こんにちは</code>.</p>
 <pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>kana-control</span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>kana-control</span><span class="token punctuation">></span></span></code></pre>
   </div>
   <div>
 <p><kana-control></kana-control></p>
   </div>
 </section>
-<h2>Configure with attributes</h2>
-<section class="columns">
-  <div>
-<p><code>&lt;kana-control&gt;</code> can be configured with attributed in plain HTML.</p>
-<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>kana-control</span> <span class="token attr-name">name</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>HTML<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>kana-control</span><span class="token punctuation">></span></span></code></pre>
-  </div>
-  <div>
-<p><kana-control name="HTML"></kana-control></p>
-  </div>
-</section>
-<h2>Declarative rendering</h2>
-<section class="columns">
-  <div>
-<p><code>&lt;kana-control&gt;</code> can be used with declarative rendering libraries like Angular, React, Vue, and lit-html</p>
-<pre class="language-js"><code class="language-js"><span class="token keyword">import</span> <span class="token punctuation">{</span>html<span class="token punctuation">,</span> render<span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'lit-html'</span><span class="token punctuation">;</span><br><br><span class="token keyword">const</span> name <span class="token operator">=</span> <span class="token string">'lit-html'</span><span class="token punctuation">;</span><br><br><span class="token function">render</span><span class="token punctuation">(</span><br>  html<span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string"><br>    &lt;h2>This is a &amp;lt;kana-control&amp;gt;&lt;/h2><br>    &lt;kana-control .name=</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>name<span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">>&lt;/kana-control><br>  </span><span class="token template-punctuation string">`</span></span><span class="token punctuation">,</span><br>  document<span class="token punctuation">.</span>body<br><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre>
-  </div>
-  <div>
-<h2>This is a &lt;kana-control&gt;</h2>
-<kana-control name="lit-html"></kana-control>
-  </div>
-</section>
+<h2>Example conversion</h2>
+<pre class="language-txt"><code class="language-txt">Input:  konnnichiha<br>Output: こんにちは</code></pre>
+<p>WanaKana handles IME edge cases such as <code>n</code> before <code>ni</code> (use triple <code>n</code>).</p>
 
       </main>
     </div>

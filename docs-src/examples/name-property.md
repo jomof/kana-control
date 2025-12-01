@@ -1,15 +1,17 @@
 ---
 layout: example.11ty.cjs
-title: <kana-control> ⌲ Examples ⌲ Name Property
+title: <kana-control> ⌲ Examples ⌲ WanaKana IME
 tags: example
-name: Name Property
-description: Setting the name property
+name: WanaKana IME
+description: Romaji-to-kana conversion inline
 ---
 
-<kana-control name="Earth"></kana-control>
+<p>Type <code>arigatou</code> or <code>konnnichiha</code> to see conversion:</p>
+
+<kana-control></kana-control>
 
 <h3>HTML</h3>
 
 ```html
-<kana-control name="Earth"></kana-control>
+<kana-control></kana-control>
 ```

@@ -42,7 +42,8 @@
   "author": "Google LLC",
   "license": "BSD-3-Clause",
   "dependencies": {
-    "lit": "^3.2.0"
+    "lit": "^3.2.0",
+    "wanakana": "^5.3.1"
   },
   "devDependencies": {
     "@11ty/eleventy": "^1.0.1",

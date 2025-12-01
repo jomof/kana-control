@@ -3,32 +3,15 @@ layout: example.11ty.cjs
 title: <kana-control> ⌲ Examples ⌲ Basic
 tags: example
 name: Basic
-description: A basic example
+description: Type romaji to get kana
 ---
 
-<style>
-  kana-control p {
-    border: solid 1px blue;
-    padding: 8px;
-  }
-</style>
-<kana-control>
-  <p>This is child content</p>
-</kana-control>
+<p>Type <code>konnnichiha</code> below and see it convert to <code>こんにちは</code>:</p>
 
-<h3>CSS</h3>
-
-```css
-p {
-  border: solid 1px blue;
-  padding: 8px;
-}
-```
+<kana-control></kana-control>
 
 <h3>HTML</h3>
 
 ```html
-<kana-control>
-  <p>This is child content</p>
-</kana-control>
+<kana-control></kana-control>
 ```

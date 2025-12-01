@@ -5,14 +5,14 @@ title: <kana-control> ⌲ Home
 
 # &lt;kana-control>
 
-`<kana-control>` is an awesome element. It's a great introduction to building web components with LitElement, with nice documentation site as well.
+`<kana-control>` is a tiny web component that provides a Japanese IME powered by WanaKana. Type romaji and it converts to kana inline.
 
 ## As easy as HTML
 
 <section class="columns">
   <div>
 
-`<kana-control>` is just an HTML element. You can it anywhere you can use HTML!
+Add the element anywhere and start typing romaji (e.g. `konnnichiha`) — it becomes `こんにちは`.
 
 ```html
 <kana-control></kana-control>
@@ -26,51 +26,11 @@ title: <kana-control> ⌲ Home
   </div>
 </section>
 
-## Configure with attributes
+## Example conversion
 
-<section class="columns">
-  <div>
-
-`<kana-control>` can be configured with attributed in plain HTML.
-
-```html
-<kana-control name="HTML"></kana-control>
+```txt
+Input:  konnnichiha
+Output: こんにちは
 ```
 
-  </div>
-  <div>
-
-<kana-control name="HTML"></kana-control>
-
-  </div>
-</section>
-
-## Declarative rendering
-
-<section class="columns">
-  <div>
-
-`<kana-control>` can be used with declarative rendering libraries like Angular, React, Vue, and lit-html
-
-```js
-import {html, render} from 'lit-html';
-
-const name = 'lit-html';
-
-render(
-  html`
-    <h2>This is a &lt;kana-control&gt;</h2>
-    <kana-control .name=${name}></kana-control>
-  `,
-  document.body
-);
-```
-
-  </div>
-  <div>
-
-<h2>This is a &lt;kana-control&gt;</h2>
-<kana-control name="lit-html"></kana-control>
-
-  </div>
-</section>
+WanaKana handles IME edge cases such as `n` before `ni` (use triple `n`).

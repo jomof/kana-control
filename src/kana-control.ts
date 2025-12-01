@@ -5,7 +5,8 @@
  */
 
 import {LitElement, html, css} from 'lit';
-import {customElement, property} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
+import * as wanakana from 'wanakana';
 
 /**
  * An example element.
@@ -25,39 +26,29 @@ export class KanaControl extends LitElement {
     }
   `;
 
-  /**
-   * The name to say "Hello" to.
-   */
-  @property()
-  name = 'World';
-
-  /**
-   * The number of times the button has been clicked.
-   */
-  @property({type: Number})
-  count = 0;
-
   override render() {
     return html`
-      <h1>${this.sayHello(this.name)}!</h1>
-      <button @click=${this._onClick} part="button">
-        Click Count: ${this.count}
-      </button>
-      <slot></slot>
+      <input
+        id="kana-input"
+        part="kana-input"
+        type="text"
+        autocapitalize="none"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+        placeholder="日本語"
+      />
     `;
   }
 
-  private _onClick() {
-    this.count++;
-    this.dispatchEvent(new CustomEvent('count-changed'));
-  }
-
-  /**
-   * Formats a greeting
-   * @param name The name to say "Hello" to
-   */
-  sayHello(name: string): string {
-    return `Hello, ${name}`;
+  override firstUpdated(): void {
+    const input = this.renderRoot.querySelector(
+      '#kana-input'
+    ) as HTMLInputElement | null;
+    if (input) {
+      // Bind WanaKana IME to convert romaji to kana as user types
+      wanakana.bind(input, {IMEMode: true});
+    }
   }
 }
 
