@@ -3,8 +3,8 @@
 These instructions orient AI coding agents to this LitElement + TypeScript component and docs site.
 
 ## Big Picture
-- Single exported web component `MyElement` (`src/my-element.ts`) compiled to root `my-element.js` + type defs via `tsc` (see `tsconfig.json`).
-- Build output mirrors `src/` tree into root: `src/test/my-element_test.ts` -> `test/my-element_test.js`.
+- Single exported web component `KanaControl` (`src/kana-control.ts`) compiled to root `kana-control.js` + type defs via `tsc` (see `tsconfig.json`).
+- Build output mirrors `src/` tree into root: `src/test/kana-control_test.ts` -> `test/kana-control_test.js`.
 - Docs static site lives in `docs-src/` (Eleventy templates) and is generated into `docs/`; Rollup bundling/minification is ONLY for docs (`rollup.config.js`). Do not introduce app bundling for NPM publish.
 - Custom Elements Manifest produced by `npm run analyze` to `custom-elements.json` for tooling.
 
@@ -13,8 +13,8 @@ These instructions orient AI coding agents to this LitElement + TypeScript compo
 - Build once: `npm run build`; watch: `npm run build:watch`.
 - Clean generated artifacts before a fresh build: `npm run clean`.
 - Dev preview (Lit dev mode): `npm run serve` -> http://localhost:8000/ (component demo in `dev/index.html`). Prod mode: `MODE=prod npm run serve:prod`.
-- Docs pipeline: `npm run docs` (cleans, builds component, analyzes, rollup bundle to `docs/my-element.bundled.js`, copies assets, runs Eleventy). Watch docs content: `npm run docs:gen:watch`. Serve generated site: `npm run docs:serve`.
-- Size check (gzip bundle heuristic): `npm run checksize` (temporary `my-element.bundled.js`).
+- Docs pipeline: `npm run docs` (cleans, builds component, analyzes, rollup bundle to `docs/kana-control.bundled.js`, copies assets, runs Eleventy). Watch docs content: `npm run docs:gen:watch`. Serve generated site: `npm run docs:serve`.
+- Size check (gzip bundle heuristic): `npm run checksize` (temporary `kana-control.bundled.js`).
 - Component analysis (update manifest): `npm run analyze` (+ `analyze:watch`).
 - Publish release: push tag `vX.Y.Z` -> `.github/workflows/publish.yml` builds & tests then `npm publish` (tag `latest`).
 - Canary publish: every push to `main` runs `.github/workflows/canary.yml` generating ephemeral version `BASE-canary.<shortsha>` and publishes with dist-tag `canary` (install via `npm i kana-control@canary`).
@@ -40,7 +40,7 @@ These instructions orient AI coding agents to this LitElement + TypeScript compo
 - Legacy browser support handled via `@web/dev-server-legacy` plugin configuration in `web-dev-server.config.js` and `web-test-runner.config.js`; polyfills intentionally toggled (e.g., webcomponents disabled during dev server, enabled in tests).
 
 ## Safe Editing Guidance
-- When changing component API (properties, events, slots, css parts), update: source (`src/my-element.ts`), tests, docs examples (`docs-src/examples/*.md`), and regenerate manifest (`npm run analyze`).
+ - When changing component API (properties, events, slots, css parts), update: source (`src/kana-control.ts`), tests, docs examples (`docs-src/examples/*.md`), and regenerate manifest (`npm run analyze`).
 - Keep output paths stable: changing `outDir` or `rootDir` in `tsconfig.json` will break docs & tests path assumptions.
 - For new components, replicate pattern (TS in `src/`, tests under `src/test/`, no bundling for publish) and update docs & manifest script globs.
 

@@ -1,15 +1,15 @@
 ---
 layout: example.11ty.cjs
-title: <my-element> ⌲ Examples ⌲ Name Property
+title: <kana-control> ⌲ Examples ⌲ Name Property
 tags: example
 name: Name Property
 description: Setting the name property
 ---
 
-<my-element name="Earth"></my-element>
+<kana-control name="Earth"></kana-control>
 
 <h3>HTML</h3>
 
 ```html
-<my-element name="Earth"></my-element>
+<kana-control name="Earth"></kana-control>
 ```
