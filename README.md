@@ -1,10 +1,136 @@
-# LitElement TypeScript starter
+# kana-control
 
-This project includes a sample component using LitElement with TypeScript.
+A LitElement web component for Japanese kana input with support for question display and progress tracking.
 
-This template is generated from the `lit-starter-ts` package in [the main Lit
-repo](https://github.com/lit/lit). Issues and PRs for this template should be
-filed in that repo.
+## Features
+
+- **Romaji → Kana Conversion**: Type romaji (e.g., `konnnichiha`) and get automatic conversion to kana (こんにちは) using WanaKana
+- **Question Support**: Display English prompts with furigana annotations
+- **Interactive Furigana**: Click English words to toggle Japanese pronunciation hints (furigana)
+- **Progress Tracking**: Visual skeleton shows answering progress with marked/unmarked tokens
+- **Flexible Answers**: Accepts multiple Japanese variants (e.g., polite/casual, pronoun changes) and tracks progress across all
+- **Incremental Validation**: Press Enter to validate typed kana; matched tokens reveal themselves, unmatched input remains for correction
+- **Completion Indicator**: A checkmark (✓) appears when all non-punctuation tokens are correctly answered
+
+## Installation
+
+```bash
+npm install kana-control
+```
+
+## Usage
+
+### Basic Kana Input
+
+```html
+<kana-control></kana-control>
+```
+
+### With Question Display
+
+```html
+<script type="module">
+  import {makeQuestion} from 'kana-control';
+
+  const control = document.querySelector('kana-control');
+  
+  // Create a question with furigana annotations: word[ふりがな]
+  const question = await makeQuestion('I live[すむ] in Seattle[シアトル].', [
+    '私 は シアトル に 住んでいます。',
+    '私 は シアトル に 住んでる。',
+  ]);
+  
+  // Supply the question to the control
+  await control.supplyQuestion(question);
+</script>
+
+<kana-control></kana-control>
+```
+
+### Answering Questions
+
+Type kana (or romaji which auto-converts) and press Enter to validate. Correct segments reveal their Japanese tokens while the remaining ones stay masked. Multiple acceptable answers are supported (e.g., `です` vs `だ`, `私` vs `僕`).
+
+Example interaction for: `I am a student[がくせい].`
+
+```
+_ _ ____ ____    (initial skeleton)
+私 _ ____ ____   (after typing "watashi" + Enter)
+私 は 学生 ____  (after typing "ha" + Enter then "gakusei" + Enter)
+私 は 学生 です ✓ (after typing "desu" + Enter)
+```
+
+You may also supply a casual variant (`私 は 学生 だ。`) and the progress tracker will choose the best matching variant as you answer.
+
+## API
+
+### `makeQuestion(english, japanese)`
+
+Creates a Question object with tokenized and augmented Japanese answers.
+
+**Parameters:**
+- `english` (string): English text with optional furigana annotations in brackets: `word[ふりがな]`
+- `japanese` (string[]): Array of acceptable Japanese answers
+
+**Returns:** `Promise<Question>`
+
+**Example:**
+```typescript
+const q = await makeQuestion('I eat[たべる] sushi[すし].', [
+  '私 は 寿司 を 食べます。',
+  '私 は 寿司 を 食べる。',
+]);
+```
+
+### `supplyQuestion(question)`
+
+Supply a question to the control for display.
+
+**Parameters:**
+- `question` (Question): The question object created by `makeQuestion()`
+
+**Example:**
+```typescript
+const control = document.querySelector('kana-control');
+await control.supplyQuestion(question);
+```
+
+### Answer Validation Flow
+
+1. User types romaji or kana into the input.
+2. On Enter key, the component converts the input to katakana for matching.
+3. The internal `markTokens()` algorithm tries to match readings against all answer variants.
+4. The variant with the most progress is selected; matched tokens are marked and revealed.
+5. Input clears only if some progress was made (at least one token matched).
+6. When all non-punctuation tokens are marked, a completion indicator (✓) appears.
+
+### Token Augmentation
+
+`makeQuestion()` automatically augments acceptable answers with variants (e.g., pronouns, polite/casual endings). This allows learners to answer flexibly without strict phrasing.
+
+### Furigana Annotation Syntax
+
+In the English prompt, annotate words with `[ふりがな]` to display clickable furigana hints:
+
+```
+'I live[すむ] in Seattle[シアトル].'
+```
+
+### CSS Parts
+
+- `kana-input`: The kana input field
+- `english`: The English prompt display
+- `skeleton`: The progress skeleton display
+
+### Completion Handling
+
+Listen for progress by observing changes on the component (e.g., via MutationObserver) or extend the component to dispatch a custom event when `✓` appears. (Custom completion event can be added if needed.)
+
+### CSS Parts
+
+- `kana-input`: The kana input field
+- `english`: The English prompt display
+- `skeleton`: The progress skeleton display
 
 ## About this release
 

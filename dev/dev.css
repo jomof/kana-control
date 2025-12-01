@@ -33,6 +33,25 @@ body {
   max-width: 800px;
 }
 
+/* Debug panel styling */
+pre#debug {
+  margin-top: 24px;
+  padding: 12px;
+  background: rgba(0,0,0,0.05);
+  border: 1px solid #ccc;
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+@media (prefers-color-scheme: dark) {
+  pre#debug {
+    background: rgba(255,255,255,0.05);
+    border-color: #444;
+    color: #ddd;
+  }
+}
+
 .hint {
   margin: 12px 0 20px;
   opacity: 0.8;
@@ -45,4 +64,11 @@ body {
   text-align: center;
   margin-bottom: 12px;
   width: 100%;
+}
+
+/* Ensure kana shows readable colors in dark mode */
+@media (prefers-color-scheme: dark) {
+  .demo kana-control::part(skeleton) {
+    color: #eee;
+  }
 }
