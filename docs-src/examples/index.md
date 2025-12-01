@@ -8,10 +8,10 @@ description: Type romaji to get kana
 
 <p>Type <code>konnnichiha</code> below and see it convert to <code>こんにちは</code>:</p>
 
-<kana-control></kana-control>
+<kana-control english="Hello world."></kana-control>
 
 <h3>HTML</h3>
 
 ```html
-<kana-control></kana-control>
+<kana-control english="Hello world."></kana-control>
 ```

@@ -29,15 +29,15 @@
     <div id="main-wrapper">
       <main>
         <h1>&lt;kana-control&gt;</h1>
-<p><code>&lt;kana-control&gt;</code> is a tiny web component that provides a Japanese IME powered by WanaKana. Type romaji and it converts to kana inline.</p>
+<p><code>&lt;kana-control&gt;</code> is a tiny web component that provides a Japanese IME powered by WanaKana. Type romaji and it converts to kana inline. You can also provide an English prompt via the <code>english</code> attribute to display the phrase to translate.</p>
 <h2>As easy as HTML</h2>
 <section class="columns">
   <div>
 <p>Add the element anywhere and start typing romaji (e.g. <code>konnnichiha</code>) — it becomes <code>こんにちは</code>.</p>
-<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>kana-control</span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>kana-control</span><span class="token punctuation">></span></span></code></pre>
+<pre class="language-html"><code class="language-html"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>kana-control</span> <span class="token attr-name">english</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>Hello world.<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>kana-control</span><span class="token punctuation">></span></span></code></pre>
   </div>
   <div>
-<p><kana-control></kana-control></p>
+<p><kana-control english="Hello world."></kana-control></p>
   </div>
 </section>
 <h2>Example conversion</h2>

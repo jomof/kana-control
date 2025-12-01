@@ -5,7 +5,7 @@ title: <kana-control> ⌲ Home
 
 # &lt;kana-control>
 
-`<kana-control>` is a tiny web component that provides a Japanese IME powered by WanaKana. Type romaji and it converts to kana inline.
+`<kana-control>` is a tiny web component that provides a Japanese IME powered by WanaKana. Type romaji and it converts to kana inline. You can also provide an English prompt via the `english` attribute to display the phrase to translate.
 
 ## As easy as HTML
 
@@ -15,13 +15,13 @@ title: <kana-control> ⌲ Home
 Add the element anywhere and start typing romaji (e.g. `konnnichiha`) — it becomes `こんにちは`.
 
 ```html
-<kana-control></kana-control>
+<kana-control english="Hello world."></kana-control>
 ```
 
   </div>
   <div>
 
-<kana-control></kana-control>
+<kana-control english="Hello world."></kana-control>
 
   </div>
 </section>

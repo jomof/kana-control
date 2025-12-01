@@ -26,6 +26,24 @@ suite('kana-control', () => {
     assert.equal(getComputedStyle(el).paddingTop, '16px');
   });
 
+  test('renders english prompt above input', async () => {
+    const el = (await fixture(
+      html`<kana-control english="Hello world."></kana-control>`
+    )) as KanaControl;
+    await el.updateComplete;
+    const sr = el.shadowRoot!;
+    const english = sr.querySelector('#english') as HTMLElement | null;
+    const input = sr.querySelector('#kana-input') as HTMLInputElement | null;
+    assert.ok(english, 'english prompt should render when provided');
+    assert.ok(input, 'input should exist');
+    assert.equal(english!.textContent?.trim(), 'Hello world.');
+    // Ensure english appears before input in the light DOM order
+    const topChildren = Array.from(sr.children);
+    const englishIndex = topChildren.indexOf(english!);
+    const inputIndex = topChildren.indexOf(input!);
+    assert.isBelow(englishIndex, inputIndex);
+  });
+
   test('wanakana converts romaji input to kana', async () => {
     const el = (await fixture(html`<kana-control></kana-control>`)) as KanaControl;
     await el.updateComplete;
