@@ -377,7 +377,6 @@ export class KanaControl extends LitElement {
         type="text"
         autocapitalize="none"
         autocomplete="off"
-        autocorrect="off"
         spellcheck="false"
         placeholder="日本語"
         @keydown=${this._handleKeydown}
