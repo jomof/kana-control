@@ -1,5 +1,4 @@
-<!doctype html>
-
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -8,15 +7,58 @@
     <script src="../node_modules/lit/polyfill-support.js"></script>
     <script type="module" src="../kana-control.js"></script>
     <style>
-      p {
-        border: solid 1px blue;
-        padding: 8px;
+      /* Opt the UA into both light & dark */
+      html {
+        color-scheme: light dark;
+      }
+
+      /* Base page spacing */
+      body {
+        margin: 0;
+        padding: 16px;
+      }
+
+      /* Theme-specific body colors */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #121212;
+          color: #eee;
+        }
+      }
+      @media (prefers-color-scheme: light) {
+        body {
+          background: #fff;
+          color: #000;
+        }
+      }
+
+      /* Center the demo and cap width */
+      .demo {
+        display: flex;
+        justify-content: center;
+      }
+      .demo kana-control {
+        width: 100%;
+        max-width: 800px;
+      }
+
+      .hint {
+        margin: 12px 0 20px;
+        opacity: 0.8;
       }
     </style>
   </head>
   <body>
-    <kana-control>
-      <p>This is child content</p>
-    </kana-control>
+    <script type="module">
+      document.addEventListener('readystatechange', () =>
+        console.log('readystatechange:', document.readyState)
+      );
+    </script>
+
+    <div class="hint">Type romaji (e.g., <code>konnnichiha</code>) → こんにちは</div>
+    <div class="demo">
+      <kana-control></kana-control>
+    </div>
+    <pre id="debug" hidden></pre>
   </body>
-</html>
+  </html>
