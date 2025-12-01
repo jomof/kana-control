@@ -5,7 +5,7 @@
  */
 
 import {LitElement, html, css} from 'lit';
-import {customElement} from 'lit/decorators.js';
+import {customElement, property} from 'lit/decorators.js';
 import * as wanakana from 'wanakana';
 
 /**
@@ -24,10 +24,29 @@ export class KanaControl extends LitElement {
       padding: 16px;
       max-width: 800px;
     }
+
+    input#kana-input {
+      box-sizing: border-box;
+      width: 100%;
+      padding-left: 2.5em;
+      padding-right: 2.5em;
+      border-radius: 8px;
+
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 22px;
+      line-height: 33px;
+      text-align: center;
+    }
   `;
+
+  @property({type: String, reflect: true})
+  english: string = '';
 
   override render() {
     return html`
+      ${this.english
+        ? html`<div id="english" part="english">${this.english}</div>`
+        : null}
       <input
         id="kana-input"
         part="kana-input"
