@@ -6,47 +6,7 @@
     <script src="../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
     <script src="../node_modules/lit/polyfill-support.js"></script>
     <script type="module" src="../kana-control.js"></script>
-    <style>
-      /* Opt the UA into both light & dark */
-      html {
-        color-scheme: light dark;
-      }
-
-      /* Base page spacing */
-      body {
-        margin: 0;
-        padding: 16px;
-      }
-
-      /* Theme-specific body colors */
-      @media (prefers-color-scheme: dark) {
-        body {
-          background: #121212;
-          color: #eee;
-        }
-      }
-      @media (prefers-color-scheme: light) {
-        body {
-          background: #fff;
-          color: #000;
-        }
-      }
-
-      /* Center the demo and cap width */
-      .demo {
-        display: flex;
-        justify-content: center;
-      }
-      .demo kana-control {
-        width: 100%;
-        max-width: 800px;
-      }
-
-      .hint {
-        margin: 12px 0 20px;
-        opacity: 0.8;
-      }
-    </style>
+    <link rel="stylesheet" href="./dev.css" />
   </head>
   <body>
     <script type="module">
