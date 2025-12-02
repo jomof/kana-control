@@ -25,7 +25,9 @@ jobs:
         run: npm ci
         working-directory: ${{ github.workspace }}
       - name: Run tests with coverage (dev + prod)
-        run: npm test
+        run: |
+          npx wtr --files "test/**/*.js"
+          MODE=prod npx wtr --files "test/**/*.js"
         working-directory: ${{ github.workspace }}
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
