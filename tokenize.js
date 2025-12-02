@@ -22,7 +22,7 @@ function getTokenizer() {
     }
     return tokenizerPromise;
 }
-export async function tokenize(text) {
+const defaultTokenize = async (text) => {
     try {
         const tokenizer = await getTokenizer();
         return tokenizer.tokenize(text);
@@ -31,5 +31,13 @@ export async function tokenize(text) {
         console.error('Tokenization failed:', error);
         throw error;
     }
+};
+let tokenizeImpl = defaultTokenize;
+export const tokenize = (text) => tokenizeImpl(text);
+export function setTokenizer(fn) {
+    tokenizeImpl = fn;
+}
+export function resetTokenizer() {
+    tokenizeImpl = defaultTokenize;
 }
 //# sourceMappingURL=tokenize.js.map

@@ -1,0 +1,80 @@
+import { augmentTokenGroups } from '../augment.js';
+import { setTokenizer, resetTokenizer } from '../tokenize.js';
+import { assert } from 'chai';
+import { IpadicFeatures } from '@patdx/kuromoji';
+
+function makeToken(surface: string, pos: string = '名詞'): IpadicFeatures {
+  return {
+    surface_form: surface,
+    reading: surface,
+    pos: pos,
+    pos_detail_1: '',
+    pos_detail_2: '',
+    pos_detail_3: '',
+    conjugated_type: '',
+    conjugated_form: '',
+    basic_form: surface,
+    pronunciation: surface,
+    word_id: 0,
+    word_type: 'KNOWN',
+    word_position: 0
+  };
+}
+
+suite('augment', () => {
+  setup(() => {
+    setTokenizer(async (text) => {
+      // Simple mock: split by space
+      return text.trim().split(/\s+/).map(w => makeToken(w));
+    });
+  });
+
+  teardown(() => {
+    resetTokenizer();
+  });
+
+  test('replaces 私 with 僕, 俺, etc.', async () => {
+    const input = [[makeToken('私'), makeToken('は')]];
+    const result = await augmentTokenGroups(input);
+    
+    const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
+    assert.include(surfaces, '私 は');
+    assert.include(surfaces, '僕 は');
+    assert.include(surfaces, '俺 は');
+    assert.include(surfaces, 'あたし は');
+  });
+
+  test('augmentDropWatashiHa drops "私 は"', async () => {
+      const input = [[makeToken('私'), makeToken('は'), makeToken('行く')]];
+      const result = await augmentTokenGroups(input);
+      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
+      
+      assert.include(surfaces, '私 は 行く');
+      assert.include(surfaces, '行く');
+  });
+
+  test('augmentDesuDaTokens replaces です with だ', async () => {
+      // Need to satisfy the guard in augmentDesuDaTokens
+      // desuIndex !== tokens.length - 1 ...
+      // It seems it wants 'です' NOT at the very end? Or checks if it IS at the end?
+      
+      /*
+      if (
+        desuIndex !== tokens.length - 1 &&
+        (desuIndex !== tokens.length - 2 ||
+          (tokens[tokens.length - 1].pos !== '記号' &&
+            tokens[tokens.length - 1].pos !== '名詞'))
+      ) { return []; }
+      */
+      
+      // So if desu is at end (index == length-1), it proceeds.
+      // If desu is at length-2, next must be symbol or noun.
+      
+      const input = [[makeToken('そう'), makeToken('です')]];
+      const result = await augmentTokenGroups(input);
+      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
+      
+      assert.include(surfaces, 'そう です');
+      assert.include(surfaces, 'そう だ');
+  });
+});

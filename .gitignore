@@ -7,4 +7,9 @@ custom-elements.json
 kana-control.js
 kana-control.js.map
 kana-control.d.ts
-kana-control.d.ts.map
+kana-control.d.ts.mapkana-control-logic.js
+kana-control-logic.js.map
+kana-control-logic.d.ts
+kana-control-logic.d.ts.map
+reports/
+.stryker-tmp/

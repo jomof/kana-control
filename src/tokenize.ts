@@ -29,7 +29,9 @@ function getTokenizer() {
   return tokenizerPromise;
 }
 
-export async function tokenize(text: string): Promise<kuromoji.IpadicFeatures[]> {
+export type TokenizerFn = (text: string) => Promise<kuromoji.IpadicFeatures[]>;
+
+const defaultTokenize: TokenizerFn = async (text: string) => {
   try {
     const tokenizer = await getTokenizer();
     return tokenizer.tokenize(text) as kuromoji.IpadicFeatures[];
@@ -37,4 +39,16 @@ export async function tokenize(text: string): Promise<kuromoji.IpadicFeatures[]>
     console.error('Tokenization failed:', error);
     throw error;
   }
+};
+
+let tokenizeImpl: TokenizerFn = defaultTokenize;
+
+export const tokenize: TokenizerFn = (text) => tokenizeImpl(text);
+
+export function setTokenizer(fn: TokenizerFn) {
+  tokenizeImpl = fn;
+}
+
+export function resetTokenizer() {
+  tokenizeImpl = defaultTokenize;
 }
