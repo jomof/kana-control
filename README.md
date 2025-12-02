@@ -7,7 +7,6 @@
 ![bundle size](https://img.shields.io/github/size/jomof/kana-control/docs/kana-control.bundled.js?label=bundle%20size)
 ![types](https://img.shields.io/badge/types-TypeScript-blue)
 ![Dependabot](https://img.shields.io/badge/dependabot-enabled-brightgreen?logo=dependabot)
-[![codecov](https://codecov.io/gh/jomof/kana-control/branch/main/graph/badge.svg)](https://codecov.io/gh/jomof/kana-control)
 
 A LitElement web component for Japanese kana input with support for question display and progress tracking.
 
