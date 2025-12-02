@@ -7,15 +7,18 @@
 import {LitElement, html, css} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import * as wanakana from 'wanakana';
-import * as kuromoji from '@patdx/kuromoji';
+// Avoid runtime coupling to kuromoji here; use a minimal Token shape.
 import {tokenize} from './tokenize.js';
 import {augmentTokenGroups} from './augment.js';
 
 /**
  * A Token represents a parsed Japanese morpheme with optional marking state.
  */
-export interface Token extends kuromoji.IpadicFeatures {
+export interface Token {
   marked: boolean | undefined;
+  surface_form: string;
+  reading?: string;
+  pos?: string;
 }
 
 /**
@@ -197,12 +200,19 @@ export async function makeQuestion(
   const groups = await Promise.all(
     japanese.map(async (it) => await tokenize(it))
   );
-  const parsed = (await augmentTokenGroups(groups)) as Token[][];
-  parsed.forEach((group) => group.forEach((token) => (token.marked = false)));
+  const augmented = await augmentTokenGroups(groups);
+  const parsed: Token[][] = augmented.map((group) =>
+    group.map((t) => ({
+      surface_form: t.surface_form,
+      reading: (t as any).reading,
+      pos: (t as any).pos,
+      marked: false,
+    }))
+  );
   return {
-    english: english,
-    japanese: japanese,
-    parsed: parsed,
+    english,
+    japanese,
+    parsed,
   } as Question;
 }
 
