@@ -4,7 +4,7 @@
 ![CI - canary](https://github.com/jomof/kana-control/actions/workflows/canary.yml/badge.svg)
 ![CI - publish](https://github.com/jomof/kana-control/actions/workflows/publish.yml/badge.svg)
 ![license](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)
-![bundle size](https://img.shields.io/bundlephobia/minzip/kana-control)
+![bundle size](https://img.shields.io/bundlejs/size/kana-control)
 ![types](https://img.shields.io/badge/types-TypeScript-blue)
 ![Dependabot](https://img.shields.io/badge/dependabot-enabled-brightgreen?logo=dependabot)
 
