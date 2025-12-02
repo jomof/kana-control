@@ -36,6 +36,7 @@ jobs:
           set -e
           # Compute gzipped size in bytes and human-readable KB
           BYTES=$(cat docs/kana-control.bundled.js | gzip -9 | wc -c | tr -d ' ')
+          export BYTES
           KB=$(python3 - <<'PY'
           import os
           b=int(os.environ['BYTES'])

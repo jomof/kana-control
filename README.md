@@ -5,7 +5,7 @@
 ![CI - publish](https://github.com/jomof/kana-control/actions/workflows/publish.yml/badge.svg)
 ![license](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)
 ![bundle size](https://img.shields.io/github/size/jomof/kana-control/docs/kana-control.bundled.js?label=bundle%20size)
-![bundle gzip](https://img.shields.io/badge/bundle%20(gzip)-{{GZIP_SIZE_BADGE}}-blue)
+![bundle gzip](https://img.shields.io/badge/bundle%20(gzip)-[19.5 KB]-blue)
 ![types](https://img.shields.io/badge/types-TypeScript-blue)
 ![Dependabot](https://img.shields.io/badge/dependabot-enabled-brightgreen?logo=dependabot)
 
