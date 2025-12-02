@@ -207,10 +207,10 @@ Alternatively the `test:prod` and `test:prod:watch` commands will run your tests
 You can also run unit tests (logic only) and integration tests (component behavior) separately:
 
 ```bash
-# Run only unit tests
+# Run only unit tests (runs in Node.js, fast)
 npm run test:unit
 
-# Run only integration tests
+# Run only integration tests (runs in browser)
 npm run test:integration
 ```
 

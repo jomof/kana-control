@@ -8,7 +8,7 @@ import {
   parseEnglishString,
   Token,
 } from '../kana-control-logic.js';
-import {assert} from '@open-wc/testing';
+import {assert} from 'chai';
 
 suite('kana-control-logic', () => {
   suite('findMatch', () => {

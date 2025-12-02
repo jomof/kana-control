@@ -200,8 +200,8 @@ export async function makeQuestion(
   const parsed: Token[][] = augmented.map((group) =>
     group.map((t) => ({
       surface_form: t.surface_form,
-      reading: (t as any).reading,
-      pos: (t as any).pos,
+      reading: t.reading,
+      pos: t.pos,
       marked: false,
     }))
   );
