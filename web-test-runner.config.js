@@ -5,6 +5,7 @@
  */
 
 import {legacyPlugin} from '@web/dev-server-legacy';
+import {coveragePlugin} from '@web/test-runner-coverage-v8';
 import {playwrightLauncher} from '@web/test-runner-playwright';
 
 const mode = process.env.MODE || 'dev';
@@ -99,6 +100,10 @@ export default {
     },
   },
   plugins: [
+    // Generate code coverage using V8
+    coveragePlugin({
+      reports: ['lcov', 'text-summary'],
+    }),
     // Detect browsers without modules (e.g. IE11) and transform to SystemJS
     // (https://modern-web.dev/docs/dev-server/plugins/legacy/).
     legacyPlugin({
