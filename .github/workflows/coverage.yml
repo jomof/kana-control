@@ -18,6 +18,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Install Playwright browsers
+        run: |
+          npx playwright install --with-deps
+        working-directory: ${{ github.workspace }}
       - name: Show working directory
         run: pwd && ls -la
         working-directory: ${{ github.workspace }}
@@ -27,10 +31,10 @@ jobs:
       - name: Build component and tests
         run: npm run build
         working-directory: ${{ github.workspace }}
-      - name: Run tests with coverage (dev + prod)
+      - name: Run tests with coverage (dev + prod, Chromium only)
         run: |
-          npx wtr --files "test/**/*.js"
-          MODE=prod npx wtr --files "test/**/*.js"
+          BROWSERS=chromium npx wtr --files "test/**/*.js"
+          MODE=prod BROWSERS=chromium npx wtr --files "test/**/*.js"
         working-directory: ${{ github.workspace }}
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
