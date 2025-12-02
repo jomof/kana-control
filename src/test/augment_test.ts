@@ -77,4 +77,14 @@ suite('augment', () => {
       assert.include(surfaces, 'そう です');
       assert.include(surfaces, 'そう だ');
   });
+
+  test('augmentDropWatashiHa does not drop "僕 は"', async () => {
+      const input = [[makeToken('僕'), makeToken('は'), makeToken('行く')]];
+      const result = await augmentTokenGroups(input);
+      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
+      
+      assert.include(surfaces, '僕 は 行く');
+      // Should not drop "僕 は" because the guard only checks for "私"
+      assert.notInclude(surfaces, '行く');
+  });
 });
