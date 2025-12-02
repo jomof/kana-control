@@ -43,8 +43,9 @@ jobs:
           print(f"{b/1024:.1f} KB")
           PY
           )
-          # Update README badge placeholder
-          sed -i "s/{{GZIP_SIZE_BADGE}}/[${KB}]/g" README.md
+          # Update README badge placeholder (URL-encode spaces)
+          KB_ENC=$(echo "$KB" | sed 's/ /%20/g')
+          sed -i "s/{{GZIP_SIZE_BADGE}}/${KB_ENC}/g" README.md
           # Stage changed files
           if [[ -n "$(git status --porcelain docs/)" ]]; then
             git config user.name "github-actions"
