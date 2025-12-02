@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
         working-directory: ${{ github.workspace }}
+      - name: Build component and tests
+        run: npm run build
+        working-directory: ${{ github.workspace }}
       - name: Run tests with coverage (dev + prod)
         run: |
           npx wtr --files "test/**/*.js"
