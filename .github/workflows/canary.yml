@@ -34,11 +34,29 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
+          # Compute gzipped size in bytes and human-readable KB
+          BYTES=$(cat docs/kana-control.bundled.js | gzip -9 | wc -c | tr -d ' ')
+          KB=$(python3 - <<'PY'
+          import os
+          b=int(os.environ['BYTES'])
+          print(f"{b/1024:.1f} KB")
+          PY
+          )
+          # Update README badge placeholder
+          sed -i "s/{{GZIP_SIZE_BADGE}}/[${KB}]/g" README.md
+          # Stage changed files
           if [[ -n "$(git status --porcelain docs/)" ]]; then
             git config user.name "github-actions"
             git config user.email "github-actions@github.com"
             git add docs/
-            git commit -m "docs: update bundled size for badge"
+          fi
+          if [[ -n "$(git status --porcelain README.md)" ]]; then
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add README.md
+          fi
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git commit -m "docs: update bundle sizes (gzip and raw)"
             git push origin HEAD:${{ github.ref_name }}
           else
             echo "No changes in docs/ to commit."
