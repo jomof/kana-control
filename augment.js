@@ -35,7 +35,7 @@ async function augmentDesuDaTokens(tokens) {
     }
     if (desuIndex > 0) {
         const prior = tokens[desuIndex - 1];
-        if (prior.pos !== '名詞' || prior.surface_form == 'たい') {
+        if (prior.pos !== '名詞') {
             return Promise.resolve([]);
         }
     }

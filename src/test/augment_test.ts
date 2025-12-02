@@ -87,4 +87,109 @@ suite('augment', () => {
       // Should not drop "僕 は" because the guard only checks for "私"
       assert.notInclude(surfaces, '行く');
   });
+
+  test('augmentDesuDaTokens does not replace です when followed by verb', async () => {
+      const input = [[makeToken('そう'), makeToken('です'), makeToken('行く', '動詞')]];
+      const result = await augmentTokenGroups(input);
+      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
+      
+      assert.include(surfaces, 'そう です 行く');
+      assert.notInclude(surfaces, 'そう だ 行く');
+  });
+
+  test('augmentDesuDaTokens replaces です when followed by symbol', async () => {
+      const input = [[makeToken('そう'), makeToken('です'), makeToken('。', '記号')]];
+      const result = await augmentTokenGroups(input);
+      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
+      
+      assert.include(surfaces, 'そう です 。');
+      assert.include(surfaces, 'そう だ 。');
+  });
+
+  test('augmentDesuDaTokens replaces です when followed by noun', async () => {
+      const input = [[makeToken('そう'), makeToken('です'), makeToken('人', '名詞')]];
+      const result = await augmentTokenGroups(input);
+      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
+      
+      assert.include(surfaces, 'そう です 人');
+      assert.include(surfaces, 'そう だ 人');
+  });
+
+  test('augmentDesuDaTokens does not replace です when followed by multiple tokens ending in symbol', async () => {
+      const input = [[makeToken('そう'), makeToken('です'), makeToken('ね', '助詞'), makeToken('。', '記号')]];
+      const result = await augmentTokenGroups(input);
+      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
+      
+      assert.include(surfaces, 'そう です ね 。');
+      assert.notInclude(surfaces, 'そう だ ね 。');
+  });
+
+  test('augmentDesuDaTokens does not replace です when preceded by adjective', async () => {
+      const input = [[makeToken('高い', '形容詞'), makeToken('です')]];
+      const result = await augmentTokenGroups(input);
+      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
+      
+      assert.include(surfaces, '高い です');
+      assert.notInclude(surfaces, '高い だ');
+  });
+
+  test('augmentDesuDaTokens does not replace です when preceded by "たい"', async () => {
+      const input = [[makeToken('行き', '動詞'), makeToken('たい', '助動詞'), makeToken('です')]];
+      const result = await augmentTokenGroups(input);
+      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
+      
+      assert.include(surfaces, '行き たい です');
+      assert.notInclude(surfaces, '行き たい だ');
+  });
+
+  test('augmentDesuDaTokens replaces です at start', async () => {
+      const input = [[makeToken('です')]];
+      const result = await augmentTokenGroups(input);
+      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
+      
+      assert.include(surfaces, 'です');
+      assert.include(surfaces, 'だ');
+  });
+
+  test('augmentDropWatashiHa does not drop "私" (single token)', async () => {
+      const input = [[makeToken('私')]];
+      const result = await augmentTokenGroups(input);
+      // Should not contain empty group
+      const emptyGroups = result.filter(g => g.length === 0);
+      assert.equal(emptyGroups.length, 0);
+  });
+
+  test('makeReadingModifierAugmenter modifies reading', async () => {
+      const input = [[makeToken('日本')]];
+      const result = await augmentTokenGroups(input);
+      
+      const readings = result.map(g => g[0].reading);
+      assert.include(readings, 'ニッポン');
+      assert.include(readings, 'ニホン');
+  });
+
+  test('makeReadingModifierAugmenter modifies reading when token is not at start', async () => {
+      const input = [[makeToken('これ'), makeToken('は'), makeToken('日本')]];
+      const result = await augmentTokenGroups(input);
+      
+      const modifiedGroup = result.find(g => g.length > 2 && g[2].reading === 'ニッポン');
+      assert.exists(modifiedGroup);
+      assert.equal(modifiedGroup![0].reading, 'これ');
+  });
+
+  test('replaces あなた with 君 and vice versa', async () => {
+      const input = [[makeToken('あなた'), makeToken('は')]];
+      const result = await augmentTokenGroups(input);
+      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
+      
+      assert.include(surfaces, 'あなた は');
+      assert.include(surfaces, '君 は');
+      
+      const input2 = [[makeToken('君'), makeToken('は')]];
+      const result2 = await augmentTokenGroups(input2);
+      const surfaces2 = result2.map(g => g.map(t => t.surface_form).join(' '));
+      
+      assert.include(surfaces2, '君 は');
+      assert.include(surfaces2, 'あなた は');
+  });
 });
