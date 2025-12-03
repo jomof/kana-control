@@ -65,7 +65,7 @@
     "@types/mocha": "^10.0.10",
     "@types/sinon": "^21.0.0",
     "@typescript-eslint/eslint-plugin": "^8.48.1",
-    "@typescript-eslint/parser": "^5.25.0",
+    "@typescript-eslint/parser": "^8.48.1",
     "@web/dev-server": "^0.4.6",
     "@web/dev-server-legacy": "^1.0.0",
     "@web/test-runner": "^0.20.2",
