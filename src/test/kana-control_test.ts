@@ -508,6 +508,48 @@ suite('kana-control', () => {
       assert.deepEqual(skippedEventDetail.englishHints, ['live', 'Seattle']);
     });
 
+    test('updates button title based on state', async () => {
+      const el = (await fixture(
+        html`<kana-control></kana-control>`
+      )) as KanaControl;
+    
+      const q = await makeQuestion('I am a student[がくせい].', [
+        '私 は 学生 です。',
+      ]);
+      await el.supplyQuestion(q);
+      await el.updateComplete;
+    
+      const button = el.shadowRoot!.querySelector('#action-button') as HTMLButtonElement;
+      const input = el.shadowRoot!.querySelector('#kana-input') as HTMLInputElement;
+
+      // 1. No progress -> Skip Question
+      assert.equal(button.title, 'Skip Question');
+
+      // 2. Progress made -> Reveal Answer
+      input.value = 'watashi';
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await el.updateComplete;
+      assert.equal(button.title, 'Reveal Answer');
+
+      // 3. Reveal answer -> Next Question
+      button.click();
+      await el.updateComplete;
+      assert.equal(button.title, 'Next Question');
+
+      // Reset for completion test
+      await el.supplyQuestion(q);
+      await el.updateComplete;
+      
+      // 4. Completed -> Next Question
+      const answers = ['watashi', 'ha', 'gakusei', 'desu'];
+      for (const ans of answers) {
+        input.value = ans;
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        await el.updateComplete;
+      }
+      assert.equal(button.title, 'Next Question');
+    });
+
     test('revealed answer shows furigana for missed kanji tokens', async () => {
       const el = (await fixture(
         html`<kana-control></kana-control>`

@@ -270,7 +270,7 @@ export class KanaControl extends LitElement {
     } else if (this._revealedAnswer) {
       buttonClass = 'skip';
       buttonText = '⏭';
-      buttonTitle = 'Skip Question';
+      buttonTitle = 'Next Question';
     } else if (hasProgress) {
       buttonClass = 'hint';
       buttonText = '?';
