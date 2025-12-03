@@ -41,7 +41,7 @@ const ct={attribute:!0,type:String,converter:b,reflect:!1,hasChanged:m},ut=(t=ct
  * Copyright 2025 Jomo Fisher
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ei={async loadArrayBuffer(t){t=t.replace(/\.gz$/,"");const n=await fetch("https://cdn.jsdelivr.net/npm/@aiktb/kuromoji@1.0.2/dict/"+t);if(!n.ok)throw new Error(`Failed to fetch ${t}: ${n.status}`);return n.arrayBuffer()}};let si=null;let ri=async t=>{try{return(await(si||(console.log("Initializing kuromoji tokenizer..."),si=new ii({loader:ei}).build()),si)).tokenize(t)}catch(t){throw console.error("Tokenization failed:",t),t}};const oi=t=>ri(t);
+const ei={async loadArrayBuffer(t){t=t.replace(/\.gz$/,"");const n=await fetch("https://cdn.jsdelivr.net/npm/@aiktb/kuromoji@1.0.2/dict/"+t);if(!n.ok)throw new Error(`Failed to fetch ${t}: ${n.status}`);return n.arrayBuffer()}};let si=null;let ri=async t=>{try{return(await(si||(si=new ii({loader:ei}).build()),si)).tokenize(t)}catch(t){throw console.error("Tokenization failed:",t),t}};const oi=t=>ri(t);
 /**
  * @license
  * Copyright 2025 Jomo Fisher
@@ -178,7 +178,7 @@ var ki=function(t,n,i,e){for(var s,r=arguments.length,o=r<3?n:null===e?e=Object.
           color: #eee;
         }
       }
-  `}async supplyQuestion(t){this.question=structuredClone(t),this.parsedEnglish=function(t){const n=/(\w+)\s*(?:\[([^\]]+)\])?/g,i=[];let e;for(;null!==(e=n.exec(t));)i.push({englishWord:e[1],furigana:e[2]||""});return i}(t.english),this._furiganaVisibility=new Array(this.parsedEnglish.length).fill(!1),this._wrongAttempts=0,this._correctAttempts=[];const n=this.renderRoot.querySelector("#kana-input");n&&(n.value=""),this.requestUpdate()}render(){const t=mi(bi(this.question?this.question.parsed:[]));return q`
+  `}async supplyQuestion(t){this.question=structuredClone(t),this.parsedEnglish=function(t){const n=/(\w+)\s*(?:\[([^\]]+)\])?/g,i=[];let e;for(;null!==(e=n.exec(t));)i.push({englishWord:e[1],furigana:e[2]||""});return i}(t.english),this._furiganaVisibility=new Array(this.parsedEnglish.length).fill(!1),this._wrongAttempts=0,this._correctAttempts=[];const n=this.renderRoot.querySelector("#kana-input");n&&(n.value=""),this.requestUpdate()}render(){const t=this.question?this.question.parsed:[],n=t.length>0?bi(t):[],i=t.length>0&&mi(n);return q`
       ${this.parsedEnglish.length>0?q`
             <div id="english" part="english">
               ${this.parsedEnglish.map((t,n)=>q`
@@ -212,17 +212,17 @@ var ki=function(t,n,i,e){for(var s,r=arguments.length,o=r<3?n:null===e?e=Object.
         <button
           id="action-button"
           part="action-button"
-          class="${t?"complete":"skip"}"
+          class="${i?"complete":"skip"}"
           @click=${this._handleActionButtonClick}
-          title="${t?"Next Question":"Skip Question"}"
+          title="${i?"Next Question":"Skip Question"}"
         >
-          ${t?"➜":"⏭"}
+          ${i?"➜":"⏭"}
         </button>
       </div>
       ${this.debug&&this.question?q`<div id="debug-output" part="debug" style="margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; font-family: monospace; font-size: 14px;">
             ${this._renderDebugInfo()}
           </div>`:null}
-    `}firstUpdated(){const t=this.renderRoot.querySelector("#kana-input");t&&un(t,{IMEMode:!0})}_handleKeydown(t){if(!this.question||"Enter"!==t.key)return;const n=this.question.parsed;if(mi(bi(n)))return this.dispatchEvent(new CustomEvent("question-complete",{bubbles:!0,composed:!0,detail:this._getEventDetail()})),void this.dispatchEvent(new CustomEvent("request-next-question",{bubbles:!0,composed:!0}));const i=t.target,e=i.value,s=yi(n,Cn(e));if(s.some(t=>null!==t.matched&&t.matched.length>0)){this._correctAttempts=[...this._correctAttempts,e],i.value="";mi(bi(n))&&(console.log("Question completed!"),this.requestUpdate())}else this._wrongAttempts++,console.log("No match found");this.requestUpdate()}_handleActionButtonClick(){if(!this.question)return;mi(bi(this.question.parsed))?this.dispatchEvent(new CustomEvent("question-complete",{bubbles:!0,composed:!0,detail:this._getEventDetail()})):this.dispatchEvent(new CustomEvent("question-skipped",{bubbles:!0,composed:!0,detail:this._getEventDetail()})),this.dispatchEvent(new CustomEvent("request-next-question",{bubbles:!0,composed:!0}))}_getEventDetail(){if(!this.question)return{};const t=bi(this.question.parsed).map(t=>"記号"===t.pos||t.marked?t.surface_form:"_".repeat(t.surface_form.length)).join("");return{finalSkeleton:t,wrongAttempts:this._wrongAttempts,correctAttempts:[...this._correctAttempts]}}_handleEnglishWordClick(t){this.parsedEnglish&&this.parsedEnglish[t]&&this.parsedEnglish[t].furigana&&t<this._furiganaVisibility.length&&(this._furiganaVisibility[t]=!this._furiganaVisibility[t]),this.requestUpdate()}_renderSkeleton(){if(!this.question)return q`<div>Loading question...</div>`;const t=bi(this.question.parsed),n=mi(t);return q`
+    `}firstUpdated(){const t=this.renderRoot.querySelector("#kana-input");t&&un(t,{IMEMode:!0})}_handleKeydown(t){if(!this.question||"Enter"!==t.key)return;const n=this.question.parsed;if(mi(bi(n)))return this.dispatchEvent(new CustomEvent("question-complete",{bubbles:!0,composed:!0,detail:this._getEventDetail()})),void this.dispatchEvent(new CustomEvent("request-next-question",{bubbles:!0,composed:!0}));const i=t.target,e=i.value,s=yi(n,Cn(e));if(s.some(t=>null!==t.matched&&t.matched.length>0)){this._correctAttempts=[...this._correctAttempts,e],i.value="";mi(bi(n))&&this.requestUpdate()}else this._wrongAttempts++;this.requestUpdate()}_handleActionButtonClick(){if(!this.question)return;mi(bi(this.question.parsed))?this.dispatchEvent(new CustomEvent("question-complete",{bubbles:!0,composed:!0,detail:this._getEventDetail()})):this.dispatchEvent(new CustomEvent("question-skipped",{bubbles:!0,composed:!0,detail:this._getEventDetail()})),this.dispatchEvent(new CustomEvent("request-next-question",{bubbles:!0,composed:!0}))}_getEventDetail(){if(!this.question)return{};const t=bi(this.question.parsed).map(t=>"記号"===t.pos||t.marked?t.surface_form:"_".repeat(t.surface_form.length)).join("");return{finalSkeleton:t,wrongAttempts:this._wrongAttempts,correctAttempts:[...this._correctAttempts]}}_handleEnglishWordClick(t){this.parsedEnglish&&this.parsedEnglish[t]&&this.parsedEnglish[t].furigana&&t<this._furiganaVisibility.length&&(this._furiganaVisibility[t]=!this._furiganaVisibility[t]),this.requestUpdate()}_renderSkeleton(){if(!this.question)return q`<div>Loading question...</div>`;const t=bi(this.question.parsed),n=mi(t);return q`
       <div class="skeleton">
         ${t.map(t=>"記号"===t.pos?q`${t.surface_form}`:q`<span class="token ${t.marked?"marked":""}"
                   >${t.marked?t.surface_form:"_".repeat(t.surface_form.length)}</span
