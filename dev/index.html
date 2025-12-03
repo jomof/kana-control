@@ -27,7 +27,7 @@
         try {
           console.log('Creating questions...');
           
-          // Create sample questions (full set imported from kana-game)
+          // Original questions (full set imported from kana-game)
           const questions = [
             await makeQuestion('I live[すむ] in Seattle[シアトル].', [
               '私 は シアトル に 住んでいます。',
@@ -60,6 +60,38 @@
             await makeQuestion('I want to go[いく] to Japan[にほん].', [
               '私 は 日本 に 行きたい です。',
             ]),
+            
+            // Additional questions to cover all augmenters in augment.ts:
+            
+            // Augmenters: 私 variants, だった↔でした (past copula compound tokens)
+            await makeQuestion('I was a teacher[せんせい].', [
+              '私 は 先生 でし た。',
+            ]),
+            
+            // Augmenters: 私 variants, る→ない (verb negatives), ます forms
+            await makeQuestion('I do not eat[たべる] meat[にく].', [
+              '私 は 肉 は 食べ ませ ん。',
+            ]),
+            
+            // Augmenters: 私 variants, と思う↔って思う (quotation contraction), ます↔dictionary
+            await makeQuestion('I think[おもう] that[という] it is good[いい].', [
+              '私 は いい と 思い ます。',
+            ]),
+            
+            // Augmenters: という↔っていう with 言う, ます forms
+            await makeQuestion('She says[いう] that[という] she is busy[いそがしい].', [
+              '彼女 は 忙しい と 言い ます。',
+            ]),
+            
+            // Augmenters: では↔じゃ (contraction), ではない↔です (copula negative)
+            await makeQuestion('That is not a cat[ねこ].', [
+              'それ は 猫 では あり ませ ん。',
+            ]),
+            
+            // Augmenters: あなた↔君, ている↔てる, ます forms
+            await makeQuestion('Do you know[しる]?', [
+              'あなた は 知っ て い ます か。',
+            ]),
           ];
 
           console.log('Questions created:', questions);
@@ -70,6 +102,9 @@
           console.log('Loading first question...');
           await control.supplyQuestion(questions[currentIndex]);
           console.log('First question loaded. parsedEnglish:', control.parsedEnglish);
+          
+          // Enable debug mode
+          control.debug = true;
 
           // Button to cycle through questions
           const nextBtn = document.getElementById('next-question');

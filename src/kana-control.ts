@@ -5,7 +5,7 @@
  */
 
 import {LitElement, html, css} from 'lit';
-import {customElement, state} from 'lit/decorators.js';
+import {customElement, property, state} from 'lit/decorators.js';
 import * as wanakana from 'wanakana';
 import {
   Token,
@@ -137,6 +137,12 @@ export class KanaControl extends LitElement {
   private _furiganaVisibility: boolean[] = [];
 
   /**
+   * Debug mode - shows all possible remaining sentences.
+   */
+  @property({type: Boolean})
+  debug = false;
+
+  /**
    * Supply a new question to display.
    *
    * @param question - The question to display
@@ -196,6 +202,11 @@ export class KanaControl extends LitElement {
         placeholder="日本語"
         @keydown=${this._handleKeydown}
       />
+      ${this.debug && this.question
+        ? html`<div id="debug-output" part="debug" style="margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; font-family: monospace; font-size: 14px;">
+            ${this._renderDebugInfo()}
+          </div>`
+        : null}
     `;
   }
 
@@ -272,6 +283,37 @@ export class KanaControl extends LitElement {
         )}
         ${completed ? html`<span class="completed">✓</span>` : ''}
       </div>
+    `;
+  }
+
+  private _renderDebugInfo() {
+    if (!this.question) {
+      return html`<div>No question loaded</div>`;
+    }
+
+    const groups = this.question.parsed as Token[][];
+    
+    // Filter to only show groups that could still be completed
+    // (groups where all marked tokens are still valid)
+    const validGroups = groups.filter(group => {
+      // If any token is marked, the group is still potentially valid
+      const hasMarked = group.some(t => t.marked);
+      // If no tokens are marked yet, all groups are valid
+      const noMarksYet = !group.some(t => t.marked);
+      return hasMarked || noMarksYet;
+    });
+
+    return html`
+      <div style="margin-bottom: 5px; font-weight: bold; color: #666;">
+        Debug: ${validGroups.length} possible sentence${validGroups.length !== 1 ? 's' : ''}
+      </div>
+      ${validGroups.map(
+        (group, idx) => html`
+          <div style="padding: 2px 0; color: #333;">
+            ${idx + 1}. ${group.map(t => t.surface_form).join('')}
+          </div>
+        `
+      )}
     `;
   }
 }

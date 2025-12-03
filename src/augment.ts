@@ -82,14 +82,45 @@ function makeReplaceWholeToken(
   return replace;
 }
 
+/**
+ * Creates a TokenAugmenter that handles multi-morpheme words that might get split during tokenization.
+ * Joins without spaces to preserve morpheme boundaries.
+ */
+function makeReplaceCompoundToken(
+  search: string,
+  replacement: string
+): TokenAugmenter {
+  async function replace(tokens: IpadicFeatures[]) {
+    let found = false;
+    const result = [];
+    for (const token of tokens) {
+      if (token.surface_form === search) {
+        result.push(replacement);
+        found = true;
+      } else {
+        result.push(token.surface_form);
+      }
+    }
+    if (!found) return [];
+    // Join without spaces to let tokenizer handle morpheme boundaries naturally
+    return Promise.resolve([await tokenize(result.join(''))]);
+  }
+  return replace;
+}
+
 const augmentDropWatashiHa = makeTokenAugmenter(
   // Guard: first two tokens are 私 + は, and there's at least one more token
-  (tokens) => tokens.length > 1 && tokens[0].surface_form === '私',
+  (tokens) =>
+    tokens.length > 2 && tokens[0].surface_form === '私' && tokens[1].surface_form === 'は',
 
   // Replacer: lexically cut off the leading "私は"
   (raw) => {
-    const dropped = raw.slice('私 は '.length);
-    return [dropped];
+    // Drop leading tokens up to and including "私 は"
+    const parts = raw.split(' ').filter((p) => p.length > 0);
+    if (parts.length >= 2 && parts[0] === '私' && parts[1] === 'は') {
+      return [parts.slice(2).join(' ')];
+    }
+    return [raw];
   }
 );
 
@@ -146,6 +177,15 @@ const tokenAugmenters: TokenAugmenter[] = [
   async (tokens: IpadicFeatures[]) => {
     const idx = tokens.findIndex((t) => t.surface_form === 'では');
     if (idx === -1) return [];
+    
+    // Guard: Don't contract では → じゃ when followed by ありない
+    // (ではありない is valid, but じゃありない mixes formality levels)
+    if (idx + 1 < tokens.length && tokens[idx + 1].surface_form === 'あり') {
+      if (idx + 2 < tokens.length && tokens[idx + 2].surface_form === 'ない') {
+        return [];  // Block ではありない → じゃありない
+      }
+    }
+    
     const out = tokens.map((t, i) => (i === idx ? 'じゃ' : t.surface_form)).join(' ');
     return [await tokenize(out)];
   },
@@ -157,119 +197,176 @@ const tokenAugmenters: TokenAugmenter[] = [
   },
   // Progressive: apply only to final verb token
   async (tokens: IpadicFeatures[]) => {
+    // Find last non-symbol token
+    let lastIdx = tokens.length - 1;
+    while (lastIdx >= 0 && tokens[lastIdx].pos === '記号') {
+      lastIdx--;
+    }
+    
     // Handle split tokens ending with て/で + いる → て/で + る
-    if (tokens.length >= 2) {
-      const last = tokens[tokens.length - 1];
-      const prev = tokens[tokens.length - 2];
-      if (last.pos === '動詞' && last.surface_form === 'いる' && prev.surface_form.match(/^([て|で])$/)) {
+    if (lastIdx >= 1) {
+      const last = tokens[lastIdx];
+      const prev = tokens[lastIdx - 1];
+      if (last.pos === '動詞' && last.surface_form === 'いる' && prev.surface_form.match(/^(て|で)$/)) {
         const out = tokens
           .map((t, i) => {
-            if (i === tokens.length - 1) return 'る';
+            if (i === lastIdx) return 'る';
             return t.surface_form;
           })
           .join(' ');
         return [await tokenize(out)];
       }
     }
-    const last = tokens[tokens.length - 1];
+    
+    if (lastIdx < 0) return [];
+    const last = tokens[lastIdx];
     if (!last || last.pos !== '動詞') return [];
     if (!last.surface_form.includes('ている') && !last.surface_form.includes('でいる')) return [];
     const repl = last.surface_form.replace(/ている/g, 'てる').replace(/でいる/g, 'でる');
-    const out = tokens.map((t, i) => (i === tokens.length - 1 ? repl : t.surface_form)).join(' ');
+    const out = tokens.map((t, i) => (i === lastIdx ? repl : t.surface_form)).join(' ');
     return [await tokenize(out)];
   },
+  // Quotation contractions: という → っていう
   async (tokens: IpadicFeatures[]) => {
-    const last = tokens[tokens.length - 1];
+    // Guard: find token "という" or sequence 助詞 と + 動詞 言う
+    // Prefer whole-token replacement first
+    const idxWhole = tokens.findIndex((t) => t.surface_form === 'という');
+    if (idxWhole !== -1) {
+      const out = tokens.map((t, i) => (i === idxWhole ? 'っていう' : t.surface_form)).join(' ');
+      return [await tokenize(out)];
+    }
+    // Sequence case: 助詞 と followed by 動詞 言う
+    for (let i = 0; i < tokens.length - 1; i++) {
+      const t0 = tokens[i];
+      const t1 = tokens[i + 1];
+      if (t0.surface_form === 'と' && t0.pos === '助詞' && t1.pos === '動詞' && (t1.basic_form === '言う' || t1.surface_form === '言う')) {
+        const out = tokens
+          .map((t, j) => {
+            if (j === i) return 'って';
+            return t.surface_form;
+          })
+          .join(' ');
+        return [await tokenize(out)];
+      }
+    }
+    return [];
+  },
+  // Reverse quotation contractions: っていう → という, って + 言う → と + 言う
+  async (tokens: IpadicFeatures[]) => {
+    const idxWhole = tokens.findIndex((t) => t.surface_form === 'っていう');
+    if (idxWhole !== -1) {
+      const out = tokens.map((t, i) => (i === idxWhole ? 'という' : t.surface_form)).join(' ');
+      return [await tokenize(out)];
+    }
+    for (let i = 0; i < tokens.length - 1; i++) {
+      const t0 = tokens[i];
+      const t1 = tokens[i + 1];
+      if (t0.surface_form === 'って' && t1.pos === '動詞' && (t1.basic_form === '言う' || t1.surface_form === '言う')) {
+        const out = tokens
+          .map((t, j) => {
+            if (j === i) return 'と';
+            return t.surface_form;
+          })
+          .join(' ');
+        return [await tokenize(out)];
+      }
+    }
+    return [];
+  },
+  // Expand quotation contractions to cover 思う and similar verbs
+  async (tokens: IpadicFeatures[]) => {
+    for (let i = 0; i < tokens.length - 1; i++) {
+      const t0 = tokens[i];
+      const t1 = tokens[i + 1];
+      if (
+        t0.surface_form === 'と' &&
+        t0.pos === '助詞' &&
+        t1.pos === '動詞' &&
+        (t1.basic_form === '思う' || t1.surface_form === '思う')
+      ) {
+        const out = tokens
+          .map((t, j) => {
+            if (j === i) return 'って';
+            return t.surface_form;
+          })
+          .join(' ');
+        return [await tokenize(out)];
+      }
+    }
+    return [];
+  },
+  async (tokens: IpadicFeatures[]) => {
+    for (let i = 0; i < tokens.length - 1; i++) {
+      const t0 = tokens[i];
+      const t1 = tokens[i + 1];
+      if (
+        t0.surface_form === 'って' &&
+        t1.pos === '動詞' &&
+        (t1.basic_form === '思う' || t1.surface_form === '思う')
+      ) {
+        const out = tokens
+          .map((t, j) => {
+            if (j === i) return 'と';
+            return t.surface_form;
+          })
+          .join(' ');
+        return [await tokenize(out)];
+      }
+    }
+    return [];
+  },
+  // Past copula: だった ↔ でした
+  makeReplaceCompoundToken('だった', 'でした'),
+  makeReplaceCompoundToken('でした', 'だった'),
+  async (tokens: IpadicFeatures[]) => {
+    // Find last non-symbol token
+    let lastIdx = tokens.length - 1;
+    while (lastIdx >= 0 && tokens[lastIdx].pos === '記号') {
+      lastIdx--;
+    }
+    
+    if (lastIdx < 0) return [];
+    const last = tokens[lastIdx];
     if (!last || last.pos !== '動詞') return [];
     if (!last.surface_form.includes('てる') && !last.surface_form.includes('でる')) return [];
     const repl = last.surface_form.replace(/てる/g, 'ている').replace(/でる/g, 'でいる');
-    const out = tokens.map((t, i) => (i === tokens.length - 1 ? repl : t.surface_form)).join(' ');
+    const out = tokens.map((t, i) => (i === lastIdx ? repl : t.surface_form)).join(' ');
     return [await tokenize(out)];
   },
   // Basic negatives and politeness toggles
   // Copula negatives: だ/です ↔ じゃない/ではない
   // Safer: operate per-token with POS/context guards
-  async (tokens: IpadicFeatures[]) => {
-    const idx = tokens.findIndex((t) => t.surface_form === 'だ');
-    if (idx === -1) return [];
-    // end or followed by 名詞/記号
-    if (
-      idx !== tokens.length - 1 &&
-      (idx !== tokens.length - 2 ||
-        (tokens[tokens.length - 1].pos !== '記号' &&
-          tokens[tokens.length - 1].pos !== '名詞'))
-    ) {
-      return [];
-    }
-    if (idx > 0 && tokens[idx - 1].pos !== '名詞') return [];
-    const replaced = tokens.map((t, i) => (i === idx ? 'じゃない' : t.surface_form)).join(' ');
-    return [await tokenize(replaced)];
-  },
-  async (tokens: IpadicFeatures[]) => {
-    const idx = tokens.findIndex((t) => t.surface_form === 'です');
-    if (idx === -1) return [];
-    // end or followed by 名詞/記号
-    if (
-      idx !== tokens.length - 1 &&
-      (idx !== tokens.length - 2 ||
-        (tokens[tokens.length - 1].pos !== '記号' &&
-          tokens[tokens.length - 1].pos !== '名詞'))
-    ) {
-      return [];
-    }
-    if (idx > 0 && tokens[idx - 1].pos !== '名詞') return [];
-    const replaced = tokens.map((t, i) => (i === idx ? 'ではない' : t.surface_form)).join(' ');
-    return [await tokenize(replaced)];
-  },
-  makeTokenAugmenter(
-    (tokens) => tokens.some((t) => t.surface_form === 'じゃない'),
-    (raw) => [raw.replaceAll(' じゃない', ' だ')]
-  ),
-  makeTokenAugmenter(
-    (tokens) => tokens.some((t) => t.surface_form === 'ではない'),
-    (raw) => [raw.replaceAll(' ではない', ' です')]
-  ),
   // Verb negatives: naive transform ～る → ～ない, ～う-stem verbs not handled exhaustively
   // For this project scope, apply simple string-level replacements for examples
-  async (tokens: IpadicFeatures[]) => {
-    // naive -る verbs in dictionary form to -ない
-    // guard: single-token sentence or final token is 動詞 and ends with る
-    const last = tokens[tokens.length - 1];
-    if (!last || last.pos !== '動詞' || !/る$/.test(last.surface_form)) return [];
-    // Exclude irregular verbs that don't follow standard -る → -ない conjugation
-    if (last.surface_form === 'する' || last.surface_form === 'くる' || last.surface_form === 'ある') return [];
-    const replaced = tokens
-      .map((t, i) => (i === tokens.length - 1 ? t.surface_form.replace(/る$/, 'ない') : t.surface_form))
-      .join(' ');
-    return [await tokenize(replaced)];
-  },
-  async (tokens: IpadicFeatures[]) => {
-    // naive reverse: -ない back to dictionary -る only when preceding token suggests ichidan stem
-    const last = tokens[tokens.length - 1];
-    if (!last || last.pos !== '動詞' || !/ない$/.test(last.surface_form)) return [];
-    // heuristic: if reading/basic_form ends with る, prefer that
-    const candidate = /る$/.test(last.basic_form || '')
-      ? (last.basic_form as string)
-      : last.surface_form.replace(/ない$/, 'る');
-    const replaced = tokens
-      .map((t, i) => (i === tokens.length - 1 ? candidate : t.surface_form))
-      .join(' ');
-    return [await tokenize(replaced)];
-  },
+
   // Politeness: naive stem + ます ↔ dictionary form
   async (tokens: IpadicFeatures[]) => {
     // polite → stem (remove trailing ます) on final token that endswith ます
-    const last = tokens[tokens.length - 1];
+    // Find last non-symbol token
+    let lastIdx = tokens.length - 1;
+    while (lastIdx >= 0 && tokens[lastIdx].pos === '記号') {
+      lastIdx--;
+    }
+    
+    if (lastIdx < 0) return [];
+    const last = tokens[lastIdx];
     if (!last || last.pos !== '動詞' || !last.surface_form.endsWith('ます')) return [];
     const stem = last.surface_form.replace(/ます$/, '');
     const replaced = tokens
-      .map((t, i) => (i === tokens.length - 1 ? stem : t.surface_form))
+      .map((t, i) => (i === lastIdx ? stem : t.surface_form))
       .join(' ');
     return [await tokenize(replaced)];
   },
   async (tokens: IpadicFeatures[]) => {
     // dictionary → polite (limited): handle 会う → 会います, 食べる → 食べます
-    const last = tokens[tokens.length - 1];
+    // Find last non-symbol token
+    let lastIdx = tokens.length - 1;
+    while (lastIdx >= 0 && tokens[lastIdx].pos === '記号') {
+      lastIdx--;
+    }
+    
+    if (lastIdx < 0) return [];
+    const last = tokens[lastIdx];
     if (!last || last.pos !== '動詞') return [];
     let polite: string | null = null;
     if (/る$/.test(last.surface_form)) {
@@ -281,8 +378,65 @@ const tokenAugmenters: TokenAugmenter[] = [
     }
     if (!polite) return [];
     const replaced = tokens
-      .map((t, i) => (i === tokens.length - 1 ? polite! : t.surface_form))
+      .map((t, i) => (i === lastIdx ? polite! : t.surface_form))
       .join(' ');
+    return [await tokenize(replaced)];
+  },
+  // Polite negative ～ません ↔ plain negative ～ない
+  async (tokens: IpadicFeatures[]) => {
+    // Find ませ ん pattern (polite negative), allowing for trailing symbols
+    if (tokens.length < 2) return [];
+    
+    // Find last non-symbol token
+    let lastIdx = tokens.length - 1;
+    while (lastIdx >= 0 && tokens[lastIdx].pos === '記号') {
+      lastIdx--;
+    }
+    
+    if (lastIdx < 1) return [];
+    
+    const last = tokens[lastIdx];
+    const secondLast = tokens[lastIdx - 1];
+    
+    if (secondLast.surface_form === 'ませ' && last.surface_form === 'ん') {
+      // Guard: Don't convert ありません → ありない (not a valid conjugation)
+      // Valid: ではありません → ではない, じゃありません → じゃない
+      // Invalid: ではありません → ではありない, じゃありません → じゃありない
+      const beforeMase = lastIdx >= 2 ? tokens[lastIdx - 2] : null;
+      if (beforeMase && beforeMase.surface_form === 'あり') {
+        return [];  // Block ありません → ありない
+      }
+      
+      // Replace ませ ん with ない, keeping trailing symbols
+      const beforeNegative = tokens.slice(0, lastIdx - 1).map(t => t.surface_form);
+      const afterNegative = tokens.slice(lastIdx + 1).map(t => t.surface_form);
+      const replaced = beforeNegative.concat(['ない'], afterNegative).join(' ');
+      return [await tokenize(replaced)];
+    }
+    return [];
+  },
+  async (tokens: IpadicFeatures[]) => {
+    // Find ない pattern and convert to ませ ん (if preceded by verb stem)
+    if (tokens.length < 2) return [];
+    
+    // Find last non-symbol token
+    let lastIdx = tokens.length - 1;
+    while (lastIdx >= 0 && tokens[lastIdx].pos === '記号') {
+      lastIdx--;
+    }
+    
+    if (lastIdx < 1) return [];
+    
+    const last = tokens[lastIdx];
+    const secondLast = tokens[lastIdx - 1];
+    
+    if (last.surface_form !== 'ない') return [];
+    // Only convert if previous token is a verb (stem)
+    if (secondLast.pos !== '動詞') return [];
+    
+    const beforeNegative = tokens.slice(0, lastIdx).map(t => t.surface_form);
+    const afterNegative = tokens.slice(lastIdx + 1).map(t => t.surface_form);
+    const replaced = beforeNegative.concat(['ませ', 'ん'], afterNegative).join(' ');
     return [await tokenize(replaced)];
   },
 ];
