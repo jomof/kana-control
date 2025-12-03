@@ -35,6 +35,7 @@
     "test:mutation": "npm run build && (stryker run || node scripts/show-next-survivor.js)",
     "test:integration": "wtr test/kana-control_test.js",
     "checksize": "rollup -c ; cat kana-control.bundled.js | gzip -9 | wc -c ; rm kana-control.bundled.js",
+    "push-version": "npm version patch && git push --follow-tags",
     "prepublishOnly": "npm run build && npm test && npm run analyze"
   },
   "keywords": [
