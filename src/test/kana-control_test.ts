@@ -266,12 +266,11 @@ suite('kana-control', () => {
       assert.ok(completed, 'skeleton should show completion indicator');
     });
 
-    test('dispatches request-next-question event when Enter is pressed on completed question', async () => {
+    test('tracks attempts and fires question-complete with details', async () => {
       const el = (await fixture(
         html`<kana-control></kana-control>`
       )) as KanaControl;
     
-      // Create a simple question
       const q = await makeQuestion('I am a student[がくせい].', [
         '私 は 学生 です。',
       ]);
@@ -279,29 +278,175 @@ suite('kana-control', () => {
       await el.updateComplete;
     
       const input = el.shadowRoot!.querySelector('#kana-input') as HTMLInputElement;
-    
-      // Complete the question
+      
+      // Make a wrong attempt
+      input.value = 'wrong';
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await el.updateComplete;
+
+      // Make correct attempts
       const answers = ['watashi', 'ha', 'gakusei', 'desu'];
       for (const ans of answers) {
         input.value = ans;
         input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
         await el.updateComplete;
       }
-      
-      // Verify it is completed
-      const skeleton = el.shadowRoot!.querySelector('#skeleton');
-      assert.ok(skeleton?.textContent?.includes('✓'), 'skeleton should show completion indicator');
 
-      // Listen for the event
-      let eventFired = false;
+      // Listen for events
+      let completeEventDetail: any = null;
+      let nextEventFired = false;
+      
+      el.addEventListener('question-complete', (e: any) => {
+        completeEventDetail = e.detail;
+      });
       el.addEventListener('request-next-question', () => {
-        eventFired = true;
+        nextEventFired = true;
       });
 
-      // Press Enter again
+      // Press Enter again to finish
       input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
       await el.updateComplete;
 
-      assert.isTrue(eventFired, 'request-next-question event should be fired');
+      assert.isNotNull(completeEventDetail);
+      assert.equal(completeEventDetail.wrongAttempts, 1);
+      assert.equal(completeEventDetail.correctAttempts.length, 4);
+      assert.include(completeEventDetail.finalSkeleton, '私');
+      assert.isTrue(nextEventFired);
+    });
+
+    test('fires question-skipped with details when skip button clicked', async () => {
+      const el = (await fixture(
+        html`<kana-control></kana-control>`
+      )) as KanaControl;
+    
+      const q = await makeQuestion('I am a student[がくせい].', [
+        '私 は 学生 です。',
+      ]);
+      await el.supplyQuestion(q);
+      await el.updateComplete;
+    
+      const input = el.shadowRoot!.querySelector('#kana-input') as HTMLInputElement;
+      
+      // Make a wrong attempt
+      input.value = 'wrong';
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await el.updateComplete;
+
+      // Make one correct attempt
+      input.value = 'watashi';
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await el.updateComplete;
+
+      // Click skip button
+      const button = el.shadowRoot!.querySelector('#action-button') as HTMLButtonElement;
+      assert.ok(button);
+      assert.include(button.className, 'skip');
+
+      let skippedEventDetail: any = null;
+      let nextEventFired = false;
+      
+      el.addEventListener('question-skipped', (e: any) => {
+        skippedEventDetail = e.detail;
+      });
+      el.addEventListener('request-next-question', () => {
+        nextEventFired = true;
+      });
+
+      button.click();
+      await el.updateComplete;
+
+      assert.isNotNull(skippedEventDetail);
+      assert.equal(skippedEventDetail.wrongAttempts, 1);
+      assert.equal(skippedEventDetail.correctAttempts.length, 1);
+      assert.include(skippedEventDetail.correctAttempts, 'watashi');
+      assert.isTrue(nextEventFired);
+    });
+
+    test('action button changes state to complete', async () => {
+      const el = (await fixture(
+        html`<kana-control></kana-control>`
+      )) as KanaControl;
+    
+      const q = await makeQuestion('I am a student[がくせい].', [
+        '私 は 学生 です。',
+      ]);
+      await el.supplyQuestion(q);
+      await el.updateComplete;
+    
+      const button = el.shadowRoot!.querySelector('#action-button') as HTMLButtonElement;
+      assert.include(button.className, 'skip');
+      assert.equal(button.textContent?.trim(), '⏭');
+
+      const input = el.shadowRoot!.querySelector('#kana-input') as HTMLInputElement;
+      const answers = ['watashi', 'ha', 'gakusei', 'desu'];
+      for (const ans of answers) {
+        input.value = ans;
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        await el.updateComplete;
+      }
+
+      assert.include(button.className, 'complete');
+      assert.equal(button.textContent?.trim(), '➜');
+      
+      // Clicking it now should fire complete event
+      let completeEventDetail: any = null;
+      el.addEventListener('question-complete', (e: any) => {
+        completeEventDetail = e.detail;
+      });
+      
+      button.click();
+      assert.isNotNull(completeEventDetail);
+    });
+
+    test('resets attempts tracking when a new question is supplied', async () => {
+      const el = (await fixture(
+        html`<kana-control></kana-control>`
+      )) as KanaControl;
+    
+      // First question
+      const q1 = await makeQuestion('I am a student.', ['私 は 学生 です。']);
+      await el.supplyQuestion(q1);
+      await el.updateComplete;
+    
+      const input = el.shadowRoot!.querySelector('#kana-input') as HTMLInputElement;
+      
+      // Q1: 1 wrong, 1 correct
+      input.value = 'wrong';
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await el.updateComplete;
+
+      input.value = 'watashi';
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await el.updateComplete;
+
+      // Supply second question
+      const q2 = await makeQuestion('I am a teacher.', ['私 は 先生 です。']);
+      await el.supplyQuestion(q2);
+      await el.updateComplete;
+
+      // Q2: 1 wrong, 1 correct
+      input.value = 'wrong again';
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await el.updateComplete;
+
+      input.value = 'watashi';
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await el.updateComplete;
+
+      // Skip to check stats for Q2
+      const button = el.shadowRoot!.querySelector('#action-button') as HTMLButtonElement;
+      
+      let skippedEventDetail: any = null;
+      el.addEventListener('question-skipped', (e: any) => {
+        skippedEventDetail = e.detail;
+      });
+
+      button.click();
+      await el.updateComplete;
+
+      // Should reflect only Q2 stats
+      assert.equal(skippedEventDetail.wrongAttempts, 1);
+      assert.equal(skippedEventDetail.correctAttempts.length, 1);
+      assert.equal(skippedEventDetail.correctAttempts[0], 'watashi');
     });
 });

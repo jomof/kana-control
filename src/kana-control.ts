@@ -227,8 +227,8 @@ export class KanaControl extends LitElement {
 
   override render() {
     const groups = this.question ? (this.question.parsed as Token[][]) : [];
-    const best = selectBestGroup(groups);
-    const completed = isCompleted(best);
+    const best = groups.length > 0 ? selectBestGroup(groups) : [];
+    const completed = groups.length > 0 ? isCompleted(best) : false;
 
     return html`
       ${this.parsedEnglish.length > 0
@@ -328,13 +328,11 @@ export class KanaControl extends LitElement {
       input.value = '';
       const best = selectBestGroup(groups);
       if (isCompleted(best)) {
-        console.log('Question completed!');
         // Trigger re-render to update skeleton
         this.requestUpdate();
       }
     } else {
       this._wrongAttempts++;
-      console.log('No match found');
     }
     
     // Always trigger re-render to update skeleton

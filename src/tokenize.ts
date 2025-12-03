@@ -23,7 +23,6 @@ let tokenizerPromise: ReturnType<typeof kuromoji.TokenizerBuilder.prototype.buil
 
 function getTokenizer() {
   if (!tokenizerPromise) {
-    console.log('Initializing kuromoji tokenizer...');
     tokenizerPromise = new kuromoji.TokenizerBuilder({loader}).build();
   }
   return tokenizerPromise;
