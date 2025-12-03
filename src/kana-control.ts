@@ -25,8 +25,8 @@ export {Token, Question, ParsedEnglish, makeQuestion} from './kana-control-logic
  * A Japanese kana input control component with optional question/progress display.
  * Converts romaji input to kana using WanaKana IME mode.
  *
- * @fires question-complete - Fired when the question is completed successfully. Detail is `{ finalSkeleton: string, wrongAttempts: number, correctAttempts: string[] }`.
- * @fires question-skipped - Fired when the question is skipped. Detail is `{ finalSkeleton: string, wrongAttempts: number, correctAttempts: string[] }`.
+ * @fires question-complete - Fired when the question is completed successfully. Detail is `{ finalSkeleton: string, wrongAttempts: number, correctAttempts: string[], englishHints: string[] }`.
+ * @fires question-skipped - Fired when the question is skipped. Detail is `{ finalSkeleton: string, wrongAttempts: number, correctAttempts: string[], englishHints: string[] }`.
  * @fires request-next-question - Fired when the user requests the next question (by clicking the button or pressing Enter after completion).
  * @slot - This element has a slot
  * @csspart action-button - The complete/skip button inside the input
@@ -97,6 +97,10 @@ export class KanaControl extends LitElement {
       color: #999;
     }
 
+    #action-button.hint {
+      color: #ff9800;
+    }
+
     #english {
       font-family: 'Noto Sans JP', sans-serif;
       font-size: 30px;
@@ -120,9 +124,10 @@ export class KanaControl extends LitElement {
       #skeleton .skeleton {
         display: flex;
         justify-content: center;
-        align-items: center;
+        align-items: baseline;
         gap: 0.2em;
         flex-wrap: wrap;
+        line-height: 2;
       }
 
       #skeleton .token {
@@ -133,6 +138,11 @@ export class KanaControl extends LitElement {
       #skeleton .token.marked {
         font-weight: bold;
         color: #000;
+      }
+
+      #skeleton .token.missed {
+        font-weight: bold;
+        color: #f57f17;
       }
 
       #skeleton .completed {
@@ -149,6 +159,9 @@ export class KanaControl extends LitElement {
         }
         #skeleton .token.marked {
           color: #eee;
+        }
+        #skeleton .token.missed {
+          color: #ffeb3b;
         }
         #skeleton .token {
           color: #888;
@@ -190,6 +203,18 @@ export class KanaControl extends LitElement {
   private _correctAttempts: string[] = [];
 
   /**
+   * Set of indices of English words for which the hint was revealed.
+   */
+  private _revealedHintIndices = new Set<number>();
+
+  /**
+   * Whether the full answer has been revealed (after user gave up).
+   * When true, the skeleton displays the full answer with missed parts highlighted.
+   */
+  @state()
+  private _revealedAnswer = false;
+
+  /**
    * Debug mode - shows all possible remaining sentences.
    */
   @property({type: Boolean})
@@ -197,6 +222,7 @@ export class KanaControl extends LitElement {
 
   /**
    * Supply a new question to display.
+   * Resets all state related to the previous question (attempts, hints, revealed answer).
    *
    * @param question - The question to display
    *
@@ -215,6 +241,8 @@ export class KanaControl extends LitElement {
     this._furiganaVisibility = new Array(this.parsedEnglish.length).fill(false);
     this._wrongAttempts = 0;
     this._correctAttempts = [];
+    this._revealedHintIndices.clear();
+    this._revealedAnswer = false;
     
     // Clear input when new question is supplied
     const input = this.renderRoot.querySelector('#kana-input') as HTMLInputElement | null;
@@ -229,6 +257,25 @@ export class KanaControl extends LitElement {
     const groups = this.question ? (this.question.parsed as Token[][]) : [];
     const best = groups.length > 0 ? selectBestGroup(groups) : [];
     const completed = groups.length > 0 ? isCompleted(best) : false;
+    const hasProgress = best.some(t => t.marked);
+
+    let buttonClass = 'skip';
+    let buttonText = '⏭';
+    let buttonTitle = 'Skip Question';
+
+    if (completed) {
+      buttonClass = 'complete';
+      buttonText = '➜';
+      buttonTitle = 'Next Question';
+    } else if (this._revealedAnswer) {
+      buttonClass = 'skip';
+      buttonText = '⏭';
+      buttonTitle = 'Skip Question';
+    } else if (hasProgress) {
+      buttonClass = 'hint';
+      buttonText = '?';
+      buttonTitle = 'Reveal Answer';
+    }
 
     return html`
       ${this.parsedEnglish.length > 0
@@ -267,16 +314,17 @@ export class KanaControl extends LitElement {
           autocomplete="off"
           spellcheck="false"
           placeholder="日本語"
+          ?disabled=${this._revealedAnswer}
           @keydown=${this._handleKeydown}
         />
         <button
           id="action-button"
           part="action-button"
-          class="${completed ? 'complete' : 'skip'}"
+          class="${buttonClass}"
           @click=${this._handleActionButtonClick}
-          title="${completed ? 'Next Question' : 'Skip Question'}"
+          title="${buttonTitle}"
         >
-          ${completed ? '➜' : '⏭'}
+          ${buttonText}
         </button>
       </div>
       ${this.debug && this.question
@@ -298,7 +346,7 @@ export class KanaControl extends LitElement {
   }
 
   private _handleKeydown(e: KeyboardEvent): void {
-    if (!this.question || e.key !== 'Enter') return;
+    if (!this.question || e.key !== 'Enter' || this._revealedAnswer) return;
 
     const groups = this.question.parsed as Token[][];
     
@@ -345,6 +393,7 @@ export class KanaControl extends LitElement {
     const groups = this.question.parsed as Token[][];
     const best = selectBestGroup(groups);
     const completed = isCompleted(best);
+    const hasProgress = best.some(t => t.marked);
 
     if (completed) {
       this.dispatchEvent(new CustomEvent('question-complete', {
@@ -352,18 +401,37 @@ export class KanaControl extends LitElement {
         composed: true,
         detail: this._getEventDetail()
       }));
-    } else {
+      this.dispatchEvent(new CustomEvent('request-next-question', {
+        bubbles: true,
+        composed: true
+      }));
+    } else if (this._revealedAnswer) {
+      // User is skipping after revealing answer
       this.dispatchEvent(new CustomEvent('question-skipped', {
         bubbles: true,
         composed: true,
         detail: this._getEventDetail()
       }));
+      this.dispatchEvent(new CustomEvent('request-next-question', {
+        bubbles: true,
+        composed: true
+      }));
+    } else if (hasProgress) {
+      // User has progress, reveal answer
+      this._revealedAnswer = true;
+      this.requestUpdate();
+    } else {
+      // No progress, just skip
+      this.dispatchEvent(new CustomEvent('question-skipped', {
+        bubbles: true,
+        composed: true,
+        detail: this._getEventDetail()
+      }));
+      this.dispatchEvent(new CustomEvent('request-next-question', {
+        bubbles: true,
+        composed: true
+      }));
     }
-
-    this.dispatchEvent(new CustomEvent('request-next-question', {
-      bubbles: true,
-      composed: true
-    }));
   }
 
   private _getEventDetail() {
@@ -376,10 +444,15 @@ export class KanaControl extends LitElement {
       return t.marked ? t.surface_form : '_'.repeat(t.surface_form.length);
     }).join('');
     
+    const englishHints = Array.from(this._revealedHintIndices)
+      .sort((a, b) => a - b)
+      .map(i => this.parsedEnglish[i].englishWord);
+
     return {
       finalSkeleton,
       wrongAttempts: this._wrongAttempts,
-      correctAttempts: [...this._correctAttempts]
+      correctAttempts: [...this._correctAttempts],
+      englishHints
     };
   }
 
@@ -391,7 +464,11 @@ export class KanaControl extends LitElement {
       this.parsedEnglish[index].furigana
     ) {
       if (index < this._furiganaVisibility.length) {
-        this._furiganaVisibility[index] = !this._furiganaVisibility[index];
+        const willBeVisible = !this._furiganaVisibility[index];
+        this._furiganaVisibility[index] = willBeVisible;
+        if (willBeVisible) {
+          this._revealedHintIndices.add(index);
+        }
       }
     }
     this.requestUpdate();
@@ -409,14 +486,39 @@ export class KanaControl extends LitElement {
     return html`
       <div class="skeleton">
         ${best.map(
-          (t) =>
-            t.pos === '記号'
-              ? html`${t.surface_form}`
-              : html`<span class="token ${t.marked ? 'marked' : ''}"
+          (t) => {
+            if (t.pos === '記号') {
+              return html`${t.surface_form}`;
+            }
+            
+            if (this._revealedAnswer) {
+              // In revealed state, show everything.
+              // If it was marked, show normally. If not, show as missed (yellow).
+              const isMissed = !t.marked;
+              const className = isMissed ? 'token missed' : 'token marked';
+
+              if (isMissed && t.reading) {
+                const hiragana = wanakana.toHiragana(t.reading);
+                const surfaceHiragana = wanakana.toHiragana(t.surface_form);
+                if (hiragana !== surfaceHiragana) {
+                  return html`<span class="${className}"
+                    ><ruby>${t.surface_form}<rt>${hiragana}</rt></ruby></span
+                  >`;
+                }
+              }
+
+              return html`<span class="${className}"
+                  >${t.surface_form}</span
+                >`;
+            }
+
+            // Normal state
+            return html`<span class="token ${t.marked ? 'marked' : ''}"
                   >${t.marked
                     ? t.surface_form
                     : '_'.repeat(t.surface_form.length)}</span
-                >`
+                >`;
+          }
         )}
         ${completed ? html`<span class="completed">✓</span>` : ''}
       </div>

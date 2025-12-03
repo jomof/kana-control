@@ -340,7 +340,8 @@ suite('kana-control', () => {
       // Click skip button
       const button = el.shadowRoot!.querySelector('#action-button') as HTMLButtonElement;
       assert.ok(button);
-      assert.include(button.className, 'skip');
+      // Since we made progress, it should be a hint button first
+      assert.include(button.className, 'hint');
 
       let skippedEventDetail: any = null;
       let nextEventFired = false;
@@ -352,6 +353,15 @@ suite('kana-control', () => {
         nextEventFired = true;
       });
 
+      // First click reveals answer
+      button.click();
+      await el.updateComplete;
+      
+      // Button should now be skip
+      assert.include(button.className, 'skip');
+      assert.isNull(skippedEventDetail);
+
+      // Second click skips
       button.click();
       await el.updateComplete;
 
@@ -441,6 +451,11 @@ suite('kana-control', () => {
         skippedEventDetail = e.detail;
       });
 
+      // First click reveals answer (since we have progress)
+      button.click();
+      await el.updateComplete;
+      
+      // Second click skips
       button.click();
       await el.updateComplete;
 
@@ -448,5 +463,94 @@ suite('kana-control', () => {
       assert.equal(skippedEventDetail.wrongAttempts, 1);
       assert.equal(skippedEventDetail.correctAttempts.length, 1);
       assert.equal(skippedEventDetail.correctAttempts[0], 'watashi');
+    });
+
+    test('tracks revealed hints and includes them in event details', async () => {
+      const el = (await fixture(
+        html`<kana-control></kana-control>`
+      )) as KanaControl;
+    
+      const q = await makeQuestion('I live[すむ] in Seattle[シアトル].', [
+        '私 は シアトル に 住んでいます。',
+      ]);
+      await el.supplyQuestion(q);
+      await el.updateComplete;
+
+      // Click on "live" (index 1) and "Seattle" (index 3)
+      const wordSpans = el.shadowRoot!.querySelectorAll('.english-word');
+      (wordSpans[1] as HTMLElement).click();
+      (wordSpans[3] as HTMLElement).click();
+      await el.updateComplete;
+
+      // Toggle "live" off and on again to ensure it's still just counted once
+      (wordSpans[1] as HTMLElement).click(); // off
+      await el.updateComplete;
+      (wordSpans[1] as HTMLElement).click(); // on
+      await el.updateComplete;
+
+      // Skip the question
+      const button = el.shadowRoot!.querySelector('#action-button') as HTMLButtonElement;
+      
+      let skippedEventDetail: any = null;
+      el.addEventListener('question-skipped', (e: any) => {
+        skippedEventDetail = e.detail;
+      });
+
+      button.click();
+      await el.updateComplete;
+
+      assert.isNotNull(skippedEventDetail);
+      assert.isArray(skippedEventDetail.englishHints);
+      assert.equal(skippedEventDetail.englishHints.length, 2);
+      assert.include(skippedEventDetail.englishHints, 'live');
+      assert.include(skippedEventDetail.englishHints, 'Seattle');
+      // Ensure order is preserved based on index
+      assert.deepEqual(skippedEventDetail.englishHints, ['live', 'Seattle']);
+    });
+
+    test('revealed answer shows furigana for missed kanji tokens', async () => {
+      const el = (await fixture(
+        html`<kana-control></kana-control>`
+      )) as KanaControl;
+    
+      // Question with Kanji: 私 (watashi), 学生 (gakusei)
+      const q = await makeQuestion('I am a student.', [
+        '私 は 学生 です。',
+      ]);
+      await el.supplyQuestion(q);
+      await el.updateComplete;
+    
+      const input = el.shadowRoot!.querySelector('#kana-input') as HTMLInputElement;
+      
+      // Answer "watashi" (私) correctly
+      input.value = 'watashi';
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await el.updateComplete;
+
+      // Click the hint button (which appears because we have progress)
+      const button = el.shadowRoot!.querySelector('#action-button') as HTMLButtonElement;
+      assert.include(button.className, 'hint');
+      button.click();
+      await el.updateComplete;
+
+      const skeleton = el.shadowRoot!.querySelector('#skeleton');
+      const tokens = skeleton!.querySelectorAll('.token');
+      
+      // Token 0: 私 (marked, correct) -> should NOT have ruby (or at least not missed class)
+      const token0 = tokens[0];
+      assert.include(token0.className, 'marked');
+      assert.notInclude(token0.className, 'missed');
+
+      // Token 2: 学生 (missed) -> should have ruby because it's Kanji
+      const token2 = tokens[2];
+      assert.include(token2.className, 'missed');
+      const ruby = token2.querySelector('ruby');
+      assert.ok(ruby, 'Missed Kanji token should have ruby tag');
+      assert.equal(ruby?.querySelector('rt')?.textContent, 'がくせい');
+
+      // Token 3: です (missed) -> should NOT have ruby because it's Hiragana only
+      const token3 = tokens[3];
+      assert.include(token3.className, 'missed');
+      assert.isNull(token3.querySelector('ruby'), 'Missed Hiragana token should not have ruby tag');
     });
 });
