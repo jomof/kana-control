@@ -106,17 +106,27 @@
           // Enable debug mode
           control.debug = true;
 
-          // Button to cycle through questions
-          const nextBtn = document.getElementById('next-question');
           const advanceQuestion = async () => {
             currentIndex = (currentIndex + 1) % questions.length;
             console.log('Loading question', currentIndex);
             await control.supplyQuestion(questions[currentIndex]);
           };
 
-          if (nextBtn) {
-            nextBtn.addEventListener('click', advanceQuestion);
-          }
+          control.addEventListener('question-complete', (e) => {
+            const {finalSkeleton, wrongAttempts, correctAttempts} = e.detail;
+            console.log('Question completed!');
+            console.log(`  finalSkeleton (string): "${finalSkeleton}"`);
+            console.log(`  wrongAttempts (number): ${wrongAttempts}`);
+            console.log('  correctAttempts (string[]):', correctAttempts);
+          });
+
+          control.addEventListener('question-skipped', (e) => {
+            const {finalSkeleton, wrongAttempts, correctAttempts} = e.detail;
+            console.log('Question skipped!');
+            console.log(`  finalSkeleton (string): "${finalSkeleton}"`);
+            console.log(`  wrongAttempts (number): ${wrongAttempts}`);
+            console.log('  correctAttempts (string[]):', correctAttempts);
+          });
           
           // Listen for request-next-question event from the component
           control.addEventListener('request-next-question', () => {
@@ -127,15 +137,10 @@
           console.log('Questions loaded. Click words with furigana to toggle pronunciation hints!');
         } catch (error) {
           console.error('Failed to create questions:', error);
-          alert('Failed to load questions. Check console for details. Error: ' + error.message);
         }
       });
     </script>
     
-    <div class="hint">
-      <button id="next-question">Next Question</button>
-    </div>
-
     <div class="demo">
       <kana-control></kana-control>
     </div>

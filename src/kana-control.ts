@@ -25,12 +25,15 @@ export {Token, Question, ParsedEnglish, makeQuestion} from './kana-control-logic
  * A Japanese kana input control component with optional question/progress display.
  * Converts romaji input to kana using WanaKana IME mode.
  *
- * @fires count-changed - Indicates when the count changes
+ * @fires question-complete - Fired when the question is completed successfully. Detail is `{ finalSkeleton: string, wrongAttempts: number, correctAttempts: string[] }`.
+ * @fires question-skipped - Fired when the question is skipped. Detail is `{ finalSkeleton: string, wrongAttempts: number, correctAttempts: string[] }`.
+ * @fires request-next-question - Fired when the user requests the next question (by clicking the button or pressing Enter after completion).
  * @slot - This element has a slot
- * @csspart button - The button
+ * @csspart action-button - The complete/skip button inside the input
  * @csspart kana-input - The kana input field
  * @csspart english - The English prompt/question display
  * @csspart skeleton - The progress skeleton display
+ * @csspart debug - The debug output container
  */
 @customElement('kana-control')
 export class KanaControl extends LitElement {
@@ -54,6 +57,44 @@ export class KanaControl extends LitElement {
       font-size: 22px;
       line-height: 33px;
       text-align: center;
+    }
+
+    .input-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    #action-button {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 24px;
+      padding: 0;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      transition: background-color 0.2s;
+      z-index: 1;
+    }
+
+    #action-button:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    #action-button.complete {
+      color: #4caf50;
+    }
+
+    #action-button.skip {
+      color: #999;
     }
 
     #english {
@@ -137,6 +178,18 @@ export class KanaControl extends LitElement {
   private _furiganaVisibility: boolean[] = [];
 
   /**
+   * Number of wrong attempts for the current question.
+   */
+  @state()
+  private _wrongAttempts = 0;
+
+  /**
+   * List of correct attempts for the current question.
+   */
+  @state()
+  private _correctAttempts: string[] = [];
+
+  /**
    * Debug mode - shows all possible remaining sentences.
    */
   @property({type: Boolean})
@@ -160,10 +213,23 @@ export class KanaControl extends LitElement {
     this.question = structuredClone(question);
     this.parsedEnglish = parseEnglishString(question.english);
     this._furiganaVisibility = new Array(this.parsedEnglish.length).fill(false);
+    this._wrongAttempts = 0;
+    this._correctAttempts = [];
+    
+    // Clear input when new question is supplied
+    const input = this.renderRoot.querySelector('#kana-input') as HTMLInputElement | null;
+    if (input) {
+      input.value = '';
+    }
+    
     this.requestUpdate();
   }
 
   override render() {
+    const groups = this.question ? (this.question.parsed as Token[][]) : [];
+    const best = selectBestGroup(groups);
+    const completed = isCompleted(best);
+
     return html`
       ${this.parsedEnglish.length > 0
         ? html`
@@ -192,16 +258,27 @@ export class KanaControl extends LitElement {
       ${this.question
         ? html`<div id="skeleton" part="skeleton">${this._renderSkeleton()}</div>`
         : null}
-      <input
-        id="kana-input"
-        part="kana-input"
-        type="text"
-        autocapitalize="none"
-        autocomplete="off"
-        spellcheck="false"
-        placeholder="日本語"
-        @keydown=${this._handleKeydown}
-      />
+      <div class="input-wrapper">
+        <input
+          id="kana-input"
+          part="kana-input"
+          type="text"
+          autocapitalize="none"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="日本語"
+          @keydown=${this._handleKeydown}
+        />
+        <button
+          id="action-button"
+          part="action-button"
+          class="${completed ? 'complete' : 'skip'}"
+          @click=${this._handleActionButtonClick}
+          title="${completed ? 'Next Question' : 'Skip Question'}"
+        >
+          ${completed ? '➜' : '⏭'}
+        </button>
+      </div>
       ${this.debug && this.question
         ? html`<div id="debug-output" part="debug" style="margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; font-family: monospace; font-size: 14px;">
             ${this._renderDebugInfo()}
@@ -228,6 +305,11 @@ export class KanaControl extends LitElement {
     // If the question is already completed, pressing Enter requests the next question
     const currentBest = selectBestGroup(groups);
     if (isCompleted(currentBest)) {
+      this.dispatchEvent(new CustomEvent('question-complete', {
+        bubbles: true,
+        composed: true,
+        detail: this._getEventDetail()
+      }));
       this.dispatchEvent(new CustomEvent('request-next-question', {
         bubbles: true,
         composed: true
@@ -242,6 +324,7 @@ export class KanaControl extends LitElement {
     const marked = markTokens(groups, katakana);
     
     if (anyMarked(marked)) {
+      this._correctAttempts = [...this._correctAttempts, value];
       input.value = '';
       const best = selectBestGroup(groups);
       if (isCompleted(best)) {
@@ -250,11 +333,56 @@ export class KanaControl extends LitElement {
         this.requestUpdate();
       }
     } else {
+      this._wrongAttempts++;
       console.log('No match found');
     }
     
     // Always trigger re-render to update skeleton
     this.requestUpdate();
+  }
+
+  private _handleActionButtonClick() {
+    if (!this.question) return;
+
+    const groups = this.question.parsed as Token[][];
+    const best = selectBestGroup(groups);
+    const completed = isCompleted(best);
+
+    if (completed) {
+      this.dispatchEvent(new CustomEvent('question-complete', {
+        bubbles: true,
+        composed: true,
+        detail: this._getEventDetail()
+      }));
+    } else {
+      this.dispatchEvent(new CustomEvent('question-skipped', {
+        bubbles: true,
+        composed: true,
+        detail: this._getEventDetail()
+      }));
+    }
+
+    this.dispatchEvent(new CustomEvent('request-next-question', {
+      bubbles: true,
+      composed: true
+    }));
+  }
+
+  private _getEventDetail() {
+    if (!this.question) return {};
+    const groups = this.question.parsed as Token[][];
+    const best = selectBestGroup(groups);
+    
+    const finalSkeleton = best.map(t => {
+      if (t.pos === '記号') return t.surface_form;
+      return t.marked ? t.surface_form : '_'.repeat(t.surface_form.length);
+    }).join('');
+    
+    return {
+      finalSkeleton,
+      wrongAttempts: this._wrongAttempts,
+      correctAttempts: [...this._correctAttempts]
+    };
   }
 
 
