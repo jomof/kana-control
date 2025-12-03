@@ -33,7 +33,7 @@
     "test:prod:watch": "MODE=prod wtr --watch",
     "test:unit": "mocha test/kana-control-logic_test.js test/tokenize_test.js test/augment_test.js --ui tdd",
     "test:mutation": "npm run build && (stryker run || node scripts/show-next-survivor.js)",
-    "test:integration": "wtr test/kana-control_test.js",
+    "test:integration": "wtr",
     "checksize": "rollup -c ; cat kana-control.bundled.js | gzip -9 | wc -c ; rm kana-control.bundled.js",
     "push-version": "npm version patch && git push --follow-tags",
     "prepublishOnly": "npm run build && npm test && npm run analyze"

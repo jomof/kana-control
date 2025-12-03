@@ -21,6 +21,10 @@ import {
 // Re-export for consumers
 export {Token, Question, ParsedEnglish, makeQuestion} from './kana-control-logic.js';
 
+const DEFAULT_INITIAL_SCORE = 100;
+const DEFAULT_CORRECT_GUESS_FACTOR = 0.95;
+const DEFAULT_INCORRECT_GUESS_FACTOR = 0.7;
+
 /**
  * A Japanese kana input control component with optional question/progress display.
  * Converts romaji input to kana using WanaKana IME mode.
@@ -40,10 +44,21 @@ export class KanaControl extends LitElement {
   static override styles = css`
     :host {
       display: block;
+      position: relative;
       border: solid 1px gray;
       padding: 16px;
       max-width: 800px;
       /* Allow both light & dark; rely on page color scheme */
+    }
+
+    #score {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 20px;
+      font-weight: bold;
+      color: #666;
     }
 
     input#kana-input {
@@ -157,6 +172,9 @@ export class KanaControl extends LitElement {
           background-color: #121212;
           border-color: #444;
         }
+        #score {
+          color: #aaa;
+        }
         #skeleton .token.marked {
           color: #eee;
         }
@@ -221,6 +239,37 @@ export class KanaControl extends LitElement {
   debug = false;
 
   /**
+   * Initial score for a question. Defaults to 100.
+   */
+  @property({type: Number})
+  initialScore = DEFAULT_INITIAL_SCORE;
+
+  /**
+   * Factor to multiply score by when a correct guess is made.
+   * Defaults to 0.95.
+   */
+  @property({type: Number})
+  correctGuessFactor = DEFAULT_CORRECT_GUESS_FACTOR;
+
+  /**
+   * Factor to multiply score by when an incorrect guess is made.
+   * Defaults to 0.7.
+   */
+  @property({type: Number})
+  incorrectGuessFactor = DEFAULT_INCORRECT_GUESS_FACTOR;
+
+  /**
+   * Current score for the active question.
+   * -1 indicates the question has not been started or score is hidden.
+   * The score is updated based on user guesses:
+   * - Correct guess: score * correctGuessFactor (unless completed)
+   * - Incorrect guess: score * incorrectGuessFactor
+   * - Reveal answer: score * (incorrectGuessFactor ^ missing_tokens)
+   */
+  @state()
+  score = -1;
+
+  /**
    * Supply a new question to display.
    * Resets all state related to the previous question (attempts, hints, revealed answer).
    *
@@ -243,6 +292,7 @@ export class KanaControl extends LitElement {
     this._correctAttempts = [];
     this._revealedHintIndices.clear();
     this._revealedAnswer = false;
+    this.score = -1;
     
     // Clear input when new question is supplied
     const input = this.renderRoot.querySelector('#kana-input') as HTMLInputElement | null;
@@ -278,6 +328,7 @@ export class KanaControl extends LitElement {
     }
 
     return html`
+      ${this.score !== -1 ? html`<div id="score">${this.score}</div>` : null}
       ${this.parsedEnglish.length > 0
         ? html`
             <div id="english" part="english">
@@ -373,14 +424,38 @@ export class KanaControl extends LitElement {
     
     if (anyMarked(marked)) {
       this._correctAttempts = [...this._correctAttempts, value];
-      input.value = '';
+      
       const best = selectBestGroup(groups);
-      if (isCompleted(best)) {
+      const completed = isCompleted(best);
+
+      if (completed) {
+        // If completed, score is not reduced.
+        // If this was the first attempt (score is -1), set to initial score.
+        // This handles the "one-shot" case where the user answers correctly in one go.
+        if (this.score === -1) {
+          this.score = this.initialScore;
+        }
+      } else {
+        // Update score for correct but incomplete guess.
+        // Score is multiplied by correctGuessFactor (e.g. 0.95).
+        let currentScore = this.score === -1 ? this.initialScore : this.score;
+        currentScore = Math.round(currentScore * this.correctGuessFactor);
+        this.score = currentScore;
+      }
+
+      input.value = '';
+      if (completed) {
         // Trigger re-render to update skeleton
         this.requestUpdate();
       }
     } else {
       this._wrongAttempts++;
+      
+      // Update score for incorrect guess.
+      // Score is multiplied by incorrectGuessFactor (e.g. 0.7).
+      let currentScore = this.score === -1 ? this.initialScore : this.score;
+      currentScore = Math.round(currentScore * this.incorrectGuessFactor);
+      this.score = currentScore;
     }
     
     // Always trigger re-render to update skeleton
@@ -418,6 +493,18 @@ export class KanaControl extends LitElement {
       }));
     } else if (hasProgress) {
       // User has progress, reveal answer
+      
+      // Calculate score penalty for revealing answer.
+      // The penalty is applied for each missing token (excluding punctuation).
+      // For each missing token, the score is multiplied by incorrectGuessFactor (e.g. 0.7).
+      const missingTokens = best.filter(t => !t.marked && t.pos !== '記号').length;
+      let currentScore = this.score === -1 ? this.initialScore : this.score;
+      
+      for (let i = 0; i < missingTokens; i++) {
+        currentScore = Math.round(currentScore * this.incorrectGuessFactor);
+      }
+      this.score = currentScore;
+
       this._revealedAnswer = true;
       this.requestUpdate();
     } else {
