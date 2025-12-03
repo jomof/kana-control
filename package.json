@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
-    "clean": "rimraf kana-control.{d.ts,d.ts.map,js,js.map} kana-control-logic.{d.ts,d.ts.map,js,js.map} test/kana-control_test.{d.ts,d.ts.map,js,js.map} test/kana-control-logic_test.{d.ts,d.ts.map,js,js.map}",
+    "clean": "rimraf kana-control.{d.ts,d.ts.map,js,js.map} kana-control-logic.{d.ts,d.ts.map,js,js.map} augment.{d.ts,d.ts.map,js,js.map} tokenize.{d.ts,d.ts.map,js,js.map} test/kana-control_test.{d.ts,d.ts.map,js,js.map} test/kana-control-logic_test.{d.ts,d.ts.map,js,js.map}",
     "lint": "npm run lint:lit-analyzer && npm run lint:eslint",
     "lint:eslint": "eslint 'src/**/*.ts'",
     "lint:lit-analyzer": "lit-analyzer",
@@ -86,8 +86,20 @@
   "files": [
     "kana-control.js",
     "kana-control.d.ts",
+    "kana-control-logic.js",
+    "kana-control-logic.d.ts",
+    "augment.js",
+    "augment.d.ts",
+    "tokenize.js",
+    "tokenize.d.ts",
     "custom-elements.json",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "exports": {
+    ".": "./kana-control.js",
+    "./kana-control-logic": "./kana-control-logic.js",
+    "./augment": "./augment.js",
+    "./tokenize": "./tokenize.js"
+  }
 }
