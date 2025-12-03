@@ -3,7 +3,7 @@ import { augmentTokenGroups } from '../augment.js';
 import { assert } from 'chai';
 import { IpadicFeatures } from '@patdx/kuromoji';
 
-function makeToken(surface: string, pos: string = '名詞'): IpadicFeatures {
+function makeToken(surface: string, pos = '名詞'): IpadicFeatures {
   return {
     surface_form: surface,
     reading: surface,
