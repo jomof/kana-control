@@ -265,4 +265,43 @@ suite('kana-control', () => {
       const completed = skeleton?.textContent?.includes('✓');
       assert.ok(completed, 'skeleton should show completion indicator');
     });
+
+    test('dispatches request-next-question event when Enter is pressed on completed question', async () => {
+      const el = (await fixture(
+        html`<kana-control></kana-control>`
+      )) as KanaControl;
+    
+      // Create a simple question
+      const q = await makeQuestion('I am a student[がくせい].', [
+        '私 は 学生 です。',
+      ]);
+      await el.supplyQuestion(q);
+      await el.updateComplete;
+    
+      const input = el.shadowRoot!.querySelector('#kana-input') as HTMLInputElement;
+    
+      // Complete the question
+      const answers = ['watashi', 'ha', 'gakusei', 'desu'];
+      for (const ans of answers) {
+        input.value = ans;
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        await el.updateComplete;
+      }
+      
+      // Verify it is completed
+      const skeleton = el.shadowRoot!.querySelector('#skeleton');
+      assert.ok(skeleton?.textContent?.includes('✓'), 'skeleton should show completion indicator');
+
+      // Listen for the event
+      let eventFired = false;
+      el.addEventListener('request-next-question', () => {
+        eventFired = true;
+      });
+
+      // Press Enter again
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await el.updateComplete;
+
+      assert.isTrue(eventFired, 'request-next-question event should be fired');
+    });
 });

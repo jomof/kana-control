@@ -108,13 +108,21 @@
 
           // Button to cycle through questions
           const nextBtn = document.getElementById('next-question');
+          const advanceQuestion = async () => {
+            currentIndex = (currentIndex + 1) % questions.length;
+            console.log('Loading question', currentIndex);
+            await control.supplyQuestion(questions[currentIndex]);
+          };
+
           if (nextBtn) {
-            nextBtn.addEventListener('click', async () => {
-              currentIndex = (currentIndex + 1) % questions.length;
-              console.log('Loading question', currentIndex);
-              await control.supplyQuestion(questions[currentIndex]);
-            });
+            nextBtn.addEventListener('click', advanceQuestion);
           }
+          
+          // Listen for request-next-question event from the component
+          control.addEventListener('request-next-question', () => {
+            console.log('Received request-next-question event');
+            advanceQuestion();
+          });
 
           console.log('Questions loaded. Click words with furigana to toggle pronunciation hints!');
         } catch (error) {

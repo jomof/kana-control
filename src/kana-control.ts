@@ -223,11 +223,22 @@ export class KanaControl extends LitElement {
   private _handleKeydown(e: KeyboardEvent): void {
     if (!this.question || e.key !== 'Enter') return;
 
+    const groups = this.question.parsed as Token[][];
+    
+    // If the question is already completed, pressing Enter requests the next question
+    const currentBest = selectBestGroup(groups);
+    if (isCompleted(currentBest)) {
+      this.dispatchEvent(new CustomEvent('request-next-question', {
+        bubbles: true,
+        composed: true
+      }));
+      return;
+    }
+
     const input = e.target as HTMLInputElement;
     const value = input.value;
     const katakana = wanakana.toKatakana(value);
     
-    const groups = this.question.parsed as Token[][];
     const marked = markTokens(groups, katakana);
     
     if (anyMarked(marked)) {
