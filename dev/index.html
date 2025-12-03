@@ -113,21 +113,23 @@
           };
 
           control.addEventListener('question-complete', (e) => {
-            const {finalSkeleton, wrongAttempts, correctAttempts, englishHints} = e.detail;
+            const {finalSkeleton, wrongAttempts, correctAttempts, englishHints, score} = e.detail;
             console.log('Question completed!');
             console.log(`  finalSkeleton (string): "${finalSkeleton}"`);
             console.log(`  wrongAttempts (number): ${wrongAttempts}`);
             console.log('  correctAttempts (string[]):', correctAttempts);
             console.log('  englishHints (string[]):', englishHints);
+            console.log(`  score (number): ${score}`);
           });
 
           control.addEventListener('question-skipped', (e) => {
-            const {finalSkeleton, wrongAttempts, correctAttempts, englishHints} = e.detail;
+            const {finalSkeleton, wrongAttempts, correctAttempts, englishHints, score} = e.detail;
             console.log('Question skipped!');
             console.log(`  finalSkeleton (string): "${finalSkeleton}"`);
             console.log(`  wrongAttempts (number): ${wrongAttempts}`);
             console.log('  correctAttempts (string[]):', correctAttempts);
             console.log('  englishHints (string[]):', englishHints);
+            console.log(`  score (number): ${score}`);
           });
           
           // Listen for request-next-question event from the component

@@ -29,8 +29,8 @@ const DEFAULT_INCORRECT_GUESS_FACTOR = 0.7;
  * A Japanese kana input control component with optional question/progress display.
  * Converts romaji input to kana using WanaKana IME mode.
  *
- * @fires question-complete - Fired when the question is completed successfully. Detail is `{ finalSkeleton: string, wrongAttempts: number, correctAttempts: string[], englishHints: string[] }`.
- * @fires question-skipped - Fired when the question is skipped. Detail is `{ finalSkeleton: string, wrongAttempts: number, correctAttempts: string[], englishHints: string[] }`.
+ * @fires question-complete - Fired when the question is completed successfully. Detail is `{ finalSkeleton: string, wrongAttempts: number, correctAttempts: string[], englishHints: string[], score: number }`.
+ * @fires question-skipped - Fired when the question is skipped. Detail is `{ finalSkeleton: string, wrongAttempts: number, correctAttempts: string[], englishHints: string[], score: number }`.
  * @fires request-next-question - Fired when the user requests the next question (by clicking the button or pressing Enter after completion).
  * @slot - This element has a slot
  * @csspart action-button - The complete/skip button inside the input
@@ -539,7 +539,8 @@ export class KanaControl extends LitElement {
       finalSkeleton,
       wrongAttempts: this._wrongAttempts,
       correctAttempts: [...this._correctAttempts],
-      englishHints
+      englishHints,
+      score: this.score
     };
   }
 

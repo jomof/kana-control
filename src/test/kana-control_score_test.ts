@@ -134,6 +134,14 @@ suite('kana-control scoring', () => {
     
     // Should preserve score 61, not reduce it further
     assert.equal(el.score, 61);
+
+    // Press Enter again to trigger completion event
+    setTimeout(() => input.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter'})));
+    const event = await new Promise<CustomEvent>((resolve) => {
+      el.addEventListener('question-complete', (e) => resolve(e as CustomEvent), {once: true});
+    });
+    
+    assert.equal(event.detail.score, 61);
   });
 
   test('revealing answer penalizes score for missing tokens', async () => {
@@ -162,7 +170,14 @@ suite('kana-control scoring', () => {
     
     actionButton.click();
     await el.updateComplete;
-
     assert.equal(el.score, 33);
+
+    // Now click again to skip and verify event detail
+    setTimeout(() => actionButton.click());
+    const event = await new Promise<CustomEvent>((resolve) => {
+      el.addEventListener('question-skipped', (e) => resolve(e as CustomEvent), {once: true});
+    });
+    
+    assert.equal(event.detail.score, 33);
   });
 });
