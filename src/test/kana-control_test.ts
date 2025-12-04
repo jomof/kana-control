@@ -595,4 +595,115 @@ suite('kana-control', () => {
       assert.include(token3.className, 'missed');
       assert.isNull(token3.querySelector('ruby'), 'Missed Hiragana token should not have ruby tag');
     });
+
+    test('displays other possible answers when question is completed', async () => {
+      const el = (await fixture(
+        html`<kana-control></kana-control>`
+      )) as KanaControl;
+
+      // Question with two possible answers
+      const q = await makeQuestion('Have you been to Japan?', [
+        '日本に行ったことがありますか。',
+        '日本に行ったことある。'
+      ]);
+      await el.supplyQuestion(q);
+      await el.updateComplete;
+
+      const input = el.shadowRoot!.querySelector('#kana-input') as HTMLInputElement;
+
+      // Type the second answer: "nihon ni itta koto aru" (no spaces, no punctuation)
+      // "nihonniittakotoaru" -> "ニホンニイッタコトアル"
+      // Tokens: 日本(ニホン), に(ニ), 行った(イッタ), こと(コト), ある(アル), 。(。)
+      // All non-symbol tokens should be marked.
+      input.value = 'nihonniittakotoaru';
+      
+      // Dispatch Enter to process the input
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await el.updateComplete;
+
+      // Check if the question is completed
+      const skeleton = el.shadowRoot!.querySelector('#skeleton');
+      const completedCheck = skeleton!.querySelector('.completed');
+      assert.ok(completedCheck, 'Question should be completed');
+
+      // Check for possible answers section
+      const possibleAnswersDiv = el.shadowRoot!.querySelector('#possible-answers');
+      assert.ok(possibleAnswersDiv, 'Possible answers section should exist');
+
+      // Check content of possible answers
+      const answers = possibleAnswersDiv!.querySelectorAll('.possible-answer');
+      assert.isTrue(answers.length >= 1, 'Should show at least one other possible answer');
+      
+      const combinedText = Array.from(answers).map(a => a.textContent).join(' ');
+      assert.include(combinedText, '日本');
+      assert.include(combinedText, 'あり'); 
+      assert.include(combinedText, 'ます'); 
+
+      // Check for furigana (ruby tags)
+      // The other answer "日本 に 行った..." should have furigana for Kanji words
+      const firstAnswer = answers[0];
+      const rubies = firstAnswer.querySelectorAll('ruby');
+      assert.isTrue(rubies.length > 0, 'Should have ruby tags for Kanji');
+      
+      // Check specific furigana
+      // Based on tokenizer output:
+      // "日本" -> "にっぽん"
+      // "行った" -> "行っ" (reading "いっ") + "た"
+      
+      const hasNihon = Array.from(rubies).some(r => r.innerHTML.includes('日本') && r.querySelector('rt')?.textContent === 'にっぽん');
+      const hasItta = Array.from(rubies).some(r => r.innerHTML.includes('行っ') && r.querySelector('rt')?.textContent === 'いっ');
+      
+      if (!hasNihon || !hasItta) {
+        console.log('Rubies found:', Array.from(rubies).map(r => ({
+            html: r.innerHTML,
+            rt: r.querySelector('rt')?.textContent
+        })));
+      }
+
+      assert.isTrue(hasNihon, 'Should have furigana for 日本 (ni-ppon)');
+      assert.isTrue(hasItta, 'Should have furigana for 行っ (i-tt)');
+      
+      // Ensure the answer we just typed is NOT in the list
+      Array.from(answers).forEach(a => {
+          assert.notInclude(a.textContent, 'ある。');
+      });
+    });
+
+    test('displays other possible answers when answer is revealed via hint', async () => {
+      const el = (await fixture(
+        html`<kana-control></kana-control>`
+      )) as KanaControl;
+
+      // Question with two possible answers
+      const q = await makeQuestion('Have you been to Japan?', [
+        '日本 に 行った こと が あり ます か。',
+        '日本 に 行った こと ある。'
+      ]);
+      await el.supplyQuestion(q);
+      await el.updateComplete;
+
+      const input = el.shadowRoot!.querySelector('#kana-input') as HTMLInputElement;
+
+      // Type part of the second answer: "nihon" -> "日本"
+      input.value = 'nihon';
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await el.updateComplete;
+
+      // Click the hint button
+      const button = el.shadowRoot!.querySelector('#action-button') as HTMLButtonElement;
+      assert.include(button.className, 'hint');
+      button.click();
+      await el.updateComplete;
+
+      // Check for possible answers section
+      const possibleAnswersDiv = el.shadowRoot!.querySelector('#possible-answers');
+      assert.ok(possibleAnswersDiv, 'Possible answers section should exist when revealed');
+
+      // Check content of possible answers
+      const answers = possibleAnswersDiv!.querySelectorAll('.possible-answer');
+      assert.isTrue(answers.length >= 1, 'Should show at least one other possible answer');
+      
+      const combinedText = Array.from(answers).map(a => a.textContent).join(' ');
+      assert.include(combinedText, 'あり'); 
+    });
 });
