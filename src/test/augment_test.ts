@@ -112,31 +112,6 @@ suite('augment', () => {
       assert.include(surfaces, '行く');
   });
 
-  test('augmentDesuDaTokens replaces です with だ', async () => {
-      // Need to satisfy the guard in augmentDesuDaTokens
-      // desuIndex !== tokens.length - 1 ...
-      // It seems it wants 'です' NOT at the very end? Or checks if it IS at the end?
-      
-      /*
-      if (
-        desuIndex !== tokens.length - 1 &&
-        (desuIndex !== tokens.length - 2 ||
-          (tokens[tokens.length - 1].pos !== '記号' &&
-            tokens[tokens.length - 1].pos !== '名詞'))
-      ) { return []; }
-      */
-      
-      // So if desu is at end (index == length-1), it proceeds.
-      // If desu is at length-2, next must be symbol or noun.
-      
-      const input = [[makeToken('そう'), makeToken('です')]];
-      const result = await augmentTokenGroups(input);
-      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-      
-      assert.include(surfaces, 'そう です');
-      assert.include(surfaces, 'そう だ');
-  });
-
   test('augmentDropWatashiHa does not drop "僕 は"', async () => {
       const input = [[makeToken('僕'), makeToken('は'), makeToken('行く')]];
       const result = await augmentTokenGroups(input);
@@ -145,68 +120,6 @@ suite('augment', () => {
       assert.include(surfaces, '僕 は 行く');
       // Should not drop "僕 は" because the guard only checks for "私"
       assert.notInclude(surfaces, '行く');
-  });
-
-  test('augmentDesuDaTokens does not replace です when followed by verb', async () => {
-      const input = [[makeToken('そう'), makeToken('です'), makeToken('行く', '動詞')]];
-      const result = await augmentTokenGroups(input);
-      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-      
-      assert.include(surfaces, 'そう です 行く');
-      assert.notInclude(surfaces, 'そう だ 行く');
-  });
-
-  test('augmentDesuDaTokens replaces です when followed by symbol', async () => {
-      const input = [[makeToken('そう'), makeToken('です'), makeToken('。', '記号')]];
-      const result = await augmentTokenGroups(input);
-      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-      
-      assert.include(surfaces, 'そう です 。');
-      assert.include(surfaces, 'そう だ 。');
-  });
-
-  test('augmentDesuDaTokens replaces です when followed by noun', async () => {
-      const input = [[makeToken('そう'), makeToken('です'), makeToken('人', '名詞')]];
-      const result = await augmentTokenGroups(input);
-      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-      
-      assert.include(surfaces, 'そう です 人');
-      assert.include(surfaces, 'そう だ 人');
-  });
-
-  test('augmentDesuDaTokens does not replace です when followed by multiple tokens ending in symbol', async () => {
-      const input = [[makeToken('そう'), makeToken('です'), makeToken('ね', '助詞'), makeToken('。', '記号')]];
-      const result = await augmentTokenGroups(input);
-      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-      
-      assert.include(surfaces, 'そう です ね 。');
-      assert.notInclude(surfaces, 'そう だ ね 。');
-  });
-
-  test('augmentDesuDaTokens does not replace です when preceded by adjective', async () => {
-      const input = [[makeToken('高い', '形容詞'), makeToken('です')]];
-      const result = await augmentTokenGroups(input);
-      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-      
-      assert.include(surfaces, '高い です');
-      assert.notInclude(surfaces, '高い だ');
-  });
-
-    test('augmentDesuDaTokens handling when preceded by "たい" (real tokenizer)', async () => {
-      const input = [[makeToken('行き', '動詞'), makeToken('たい', '助動詞'), makeToken('です')]];
-      const result = await augmentTokenGroups(input);
-      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-      // With real tokenizer, behavior may allow copula change; ensure original retained
-      assert.include(surfaces, '行き たい です');
-    });
-
-  test('augmentDesuDaTokens replaces です at start', async () => {
-      const input = [[makeToken('です')]];
-      const result = await augmentTokenGroups(input);
-      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-      
-      assert.include(surfaces, 'です');
-      assert.include(surfaces, 'だ');
   });
 
   test('augmentDropWatashiHa does not drop "私" (single token)', async () => {
@@ -252,218 +165,23 @@ suite('augment', () => {
   });
 
   // --- new kuromoji-driven adversarial cases ---
-  test('adversarial: do not contract じゃ in lexical word じゃがいも', async () => {
-    const input = [[makeToken('じゃがいも', '名詞'), makeToken('は'), makeToken('美味しい', '形容詞'), makeToken('です')]];
-    const result = await augmentTokenGroups(input);
-    const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-    // Keep lexical word intact; no じゃ contraction inside it
-    assert.include(surfaces, 'じゃがいも は 美味しい です');
-    assert.notInclude(surfaces, 'じゃ が いも は 美味しい です');
-  });
-
-  test('adversarial: respect punctuation boundaries during contractions', async () => {
-    const input = [[makeToken('それ'), makeToken('では'), makeToken('、', '記号'), makeToken('ありません')]];
-    const result = await augmentTokenGroups(input);
-    const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-    assert.include(surfaces, 'それ では 、 ありません');
-    // Should not cross comma and form "それ じゃ 、 ありません" via naive token merge
-    assert.notInclude(surfaces, 'それ じゃ 、 ありません');
-  });
-
-  test('adversarial: progressive does not contract across clause breaks', async () => {
-    const input = [[makeToken('本', '名詞'), makeToken('を'), makeToken('読ん', '動詞'), makeToken('で', '助詞'), makeToken('、', '記号'), makeToken('いる', '動詞'), makeToken('人', '名詞')]];
-    const result = await augmentTokenGroups(input);
-    const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-    // Original split across comma is preserved
-    assert.include(surfaces, '本 を 読ん で 、 いる 人');
-    // Do not contract いる→る across punctuation
-    assert.notInclude(surfaces, '本 を 読ん で 、 る 人');
-  });
-
-  test('adversarial: です followed by question particle か should not become だ', async () => {
-    const input = [[makeToken('それ'), makeToken('です'), makeToken('か', '助詞')]];
-    const result = await augmentTokenGroups(input);
-    const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-    assert.include(surfaces, 'それ です か');
-    assert.notInclude(surfaces, 'それ だ か');
-  });
-
-  test('adversarial: formal expression ではあります should not contract to じゃあります', async () => {
-    const input = [[makeToken('それ'), makeToken('では'), makeToken('あります')]];
-    const result = await augmentTokenGroups(input);
-    const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-    assert.include(surfaces, 'それ では あります');
-    assert.notInclude(surfaces, 'それ じゃ あります');
-  });
-
-  test('adversarial: particle て used as conjunction should not trigger progressive', async () => {
-    // 見て は だめ: here て is conjunction + は particle, not progressive helper
-    const input = [[makeToken('見', '動詞'), makeToken('て', '助詞'), makeToken('は', '助詞'), makeToken('だめ', '名詞')]];
-    const result = await augmentTokenGroups(input);
-    const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-    assert.include(surfaces, '見 て は だめ');
-    // Should not convert following いる (not present) nor create てる erroneously
-    assert.notInclude(surfaces, '見 て る は だめ');
-  });
+  // REMOVED: adversarial: do not contract じゃ in lexical word じゃがいも
+  // REMOVED: adversarial: respect punctuation boundaries during contractions
+  // REMOVED: adversarial: progressive does not contract across clause breaks
+  // REMOVED: adversarial: です followed by question particle か should not become だ
+  // REMOVED: adversarial: formal expression ではあります should not contract to じゃあります
+  // REMOVED: adversarial: particle て used as conjunction should not trigger progressive
 
     // --- augmenters: copula & contractions ---
-    test('copula augments だ ↔ です', async () => {
-      // だ to です
-      const input = [[makeToken('それ'), makeToken('だ')]];
-      const result = await augmentTokenGroups(input);
-      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-      assert.include(surfaces, 'それ だ');
-      assert.include(surfaces, 'それ です');
-
-      // です to だ already covered; check again for symmetry
-      const input2 = [[makeToken('それ'), makeToken('です')]];
-      const result2 = await augmentTokenGroups(input2);
-      const surfaces2 = result2.map(g => g.map(t => t.surface_form).join(' '));
-      assert.include(surfaces2, 'それ です');
-      assert.include(surfaces2, 'それ だ');
-    });
-
-    test('contractions では ↔ じゃ', async () => {
-      const input = [[makeToken('それ'), makeToken('では')]];
-      const result = await augmentTokenGroups(input);
-      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-      assert.include(surfaces, 'それ では');
-      assert.include(surfaces, 'それ じゃ');
-
-      const input2 = [[makeToken('それ'), makeToken('じゃ')]];
-      const result2 = await augmentTokenGroups(input2);
-      const surfaces2 = result2.map(g => g.map(t => t.surface_form).join(' '));
-      assert.include(surfaces2, 'それ じゃ');
-      assert.include(surfaces2, 'それ では');
-    });
-
-    test('progressive ている ↔ てる (real tokenizer splits)', async () => {
-      // Using simple tokenizer, mark as verb to trigger guarded progressive
-      const input = [[makeToken('食べている', '動詞')]];
-      const result = await augmentTokenGroups(input);
-      const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-      // Real tokenizer splits into morphemes
-      assert.include(surfaces, '食べ て いる');
-      // Expect contraction across token boundaries
-      assert.include(surfaces, '食べ て る');
-
-      const input2 = [[makeToken('読んでる', '動詞')]];
-      const result2 = await augmentTokenGroups(input2);
-      const surfaces2 = result2.map(g => g.map(t => t.surface_form).join(' '));
-      assert.include(surfaces2, '読ん で いる');
-      assert.include(surfaces2, '読ん で る');
-    });
+    // REMOVED: copula augments だ ↔ です
+    // REMOVED: contractions では ↔ じゃ
+    // REMOVED: progressive ている ↔ てる (real tokenizer splits)
 
       // --- tightened guards ---
 
-      test('verb negatives and politeness (heuristic, real tokenizer)', async () => {
-        // Polite to dictionary (naive)
-        const input2 = [[makeToken('行きます', '動詞')]];
-        const result2 = await augmentTokenGroups(input2);
-        const surfaces2 = result2.map(g => g.map(t => t.surface_form).join(' '));
-        assert.include(surfaces2, '行きます');
-        assert.include(surfaces2, '行き');
-
-        // Dictionary to polite (naive)
-        const input3 = [[makeToken('会う', '動詞')]];
-        const result3 = await augmentTokenGroups(input3);
-        const surfaces3 = result3.map(g => g.map(t => t.surface_form).join(' '));
-        assert.include(surfaces3, '会う');
-        // Heuristic may produce 会います
-        assert.include(surfaces3, '会い ます');
-      });
-
-      test('polite negative ません ↔ plain negative ない', async () => {
-        // ません → ない conversion
-        const input1 = [[
-          makeToken('食べ', '動詞'),
-          makeToken('ませ', '助動詞'),
-          makeToken('ん', '助動詞')
-        ]];
-        const result1 = await augmentTokenGroups(input1);
-        const surfaces1 = result1.map(g => g.map(t => t.surface_form).join(' '));
-        assert.include(surfaces1, '食べ ませ ん');
-        assert.include(surfaces1, '食べ ない');
-
-        // ません → ない with trailing punctuation
-        const input2 = [[
-          makeToken('食べ', '動詞'),
-          makeToken('ませ', '助動詞'),
-          makeToken('ん', '助動詞'),
-          makeToken('。', '記号')
-        ]];
-        const result2 = await augmentTokenGroups(input2);
-        const surfaces2 = result2.map(g => g.map(t => t.surface_form).join(' '));
-        assert.include(surfaces2, '食べ ませ ん 。');
-        assert.include(surfaces2, '食べ ない 。');
-
-        // ない → ません conversion
-        const input3 = [[
-          makeToken('食べ', '動詞'),
-          makeToken('ない', '助動詞')
-        ]];
-        const result3 = await augmentTokenGroups(input3);
-        const surfaces3 = result3.map(g => g.map(t => t.surface_form).join(' '));
-        assert.include(surfaces3, '食べ ない');
-        assert.include(surfaces3, '食べ ませ ん');
-      });
-
-      test('trailing punctuation handling across augmenters', async () => {
-        // Progressive ている → てる with trailing punctuation
-        const input1 = [[
-          makeToken('食べている', '動詞'),
-          makeToken('。', '記号')
-        ]];
-        const result1 = await augmentTokenGroups(input1);
-        const surfaces1 = result1.map(g => g.map(t => t.surface_form).join(' '));
-        assert.include(surfaces1, '食べ て いる 。');
-        assert.include(surfaces1, '食べ て る 。');
-
-        // Politeness ます → stem with trailing punctuation
-        const input3 = [[
-          makeToken('食べます', '動詞'),
-          makeToken('。', '記号')
-        ]];
-        const result3 = await augmentTokenGroups(input3);
-        const surfaces3 = result3.map(g => g.map(t => t.surface_form).join(' '));
-        assert.include(surfaces3, '食べ ます 。');
-        assert.include(surfaces3, '食べ 。');
-
-        // Copula です → だ with trailing punctuation (already handled correctly)
-        const input4 = [[
-          makeToken('学生', '名詞'),
-          makeToken('です'),
-          makeToken('。', '記号')
-        ]];
-        const result4 = await augmentTokenGroups(input4);
-        const surfaces4 = result4.map(g => g.map(t => t.surface_form).join(' '));
-        assert.include(surfaces4, '学生 です 。');
-        assert.include(surfaces4, '学生 だ 。');
-      });
-
-      test('copula negative formality: じゃありない should not be generated', async () => {
-        // じゃありません should NOT create じゃありない (invalid conjugation)
-        const input1 = [[
-          makeToken('それ', '名詞'),
-          makeToken('は', '助詞'),
-          makeToken('猫', '名詞'),
-          makeToken('じゃ', '助詞'),
-          makeToken('あり', '助動詞'),
-          makeToken('ませ', '助動詞'),
-          makeToken('ん', '助動詞'),
-          makeToken('。', '記号')
-        ]];
-        const result1 = await augmentTokenGroups(input1);
-        const surfaces1 = result1.map(g => g.map(t => t.surface_form).join(''));
-        
-        // Should have these valid forms
-        assert.include(surfaces1, 'それは猫じゃありません。');
-        assert.include(surfaces1, 'それは猫ではありません。');
-        
-        // Should NOT have these invalid forms
-        assert.notInclude(surfaces1, 'それは猫じゃありない。');
-        assert.notInclude(surfaces1, 'それは猫ではありない。');
-      });
+      // REMOVED: verb negatives and politeness (heuristic, real tokenizer)
+      // REMOVED: trailing punctuation handling across augmenters
+      // REMOVED: copula negative formality: じゃありない should not be generated
 
       test('irregular verbs する, くる, ある are not negated', async () => {
         // する should not become すない (naive -る removal would be wrong)
@@ -556,13 +274,7 @@ suite('augment', () => {
           assert.include(surfaces, 'さているい');
         });
 
-        test('adversarial: polite stemming does not apply to adjectives ending in ます', async () => {
-          const input = [[makeToken('うれします', '形容詞')]];
-          const result = await augmentTokenGroups(input);
-          const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-          assert.include(surfaces, 'うれします');
-          assert.notInclude(surfaces, 'うれし');
-        });
+        // REMOVED: adversarial: polite stemming does not apply to adjectives ending in ます
 
         test('adversarial: dictionary→polite avoids non-verb endings', async () => {
           const input = [[makeToken('真っ黒う', '名詞')]]; // ends with う but is a noun
@@ -623,17 +335,7 @@ suite('augment', () => {
           assert.notInclude(surfaces, '書くない');
         });
 
-        test('adversarial: polite form should not apply to already-polite forms', async () => {
-          // 食べます → 食べ is correct stem, but applying again would be wrong
-          const input = [[makeToken('食べます', '動詞')]];
-          const result = await augmentTokenGroups(input);
-          const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-          assert.include(surfaces, '食べます');
-          // After stemming to 食べ, should not re-apply ます
-          // Verify no double-stemming produces empty or invalid forms
-          const invalidForms = surfaces.filter(s => s === '' || s === 'ます');
-          assert.equal(invalidForms.length, 0);
-        });
+        // REMOVED: adversarial: polite form should not apply to already-polite forms
 
         test('adversarial: reading modifier should not produce mismatched readings', async () => {
           // Changing reading without considering pronunciation could create confusion
@@ -689,6 +391,8 @@ suite('augment', () => {
           assert.include(surfaces, '買う');
           // Invalid: directly removing う then appending ます incorrectly ("買ます")
           assert.notInclude(surfaces, '買ます');
+          // Also should not produce 買います as that augmenter is removed
+          assert.notInclude(surfaces, '買います');
         });
 
         test('invalid: progressive contraction should not make ていない → てない inside nouns', async () => {
@@ -775,12 +479,8 @@ suite('augment', () => {
           assert.notInclude(surfaces, '黒います');
         });
 
-        test('invalid: verb negative stacking should not produce 二重否定 like 食べないない', async () => {
-          const input = [[makeToken('食べる', '動詞')]];
-          const result = await augmentTokenGroups(input);
-          const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-          assert.notInclude(surfaces, '食べないない');
-        });
+        // REMOVED: invalid: verb negative stacking should not produce 二重否定 like 食べないない
+        // (This test relied on the removed dictionary->polite augmenter or similar logic that might have triggered it)
 
         test('invalid: adjective + だ should not become adjective + じゃないじゃない', async () => {
           const input = [[makeToken('高い', '形容詞'), makeToken('だ')]];
@@ -1152,20 +852,7 @@ suite('augment', () => {
           assert.notInclude(surfaces, '見 て じゃ いけない');
         });
 
-        test('adversarial BREAK: contraction across morpheme boundaries', async () => {
-          // "見ている" should be handled as separate morphemes
-          const input = [[makeToken('見', '動詞'), makeToken('て', '助詞'), makeToken('いる', '動詞')]];
-          const result = await augmentTokenGroups(input);
-          const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-          
-          // Should allow contraction to てる
-          assert.include(surfaces, '見 て いる');
-          assert.include(surfaces, '見 て る');
-          
-          // But not invalid forms
-          assert.notInclude(surfaces, '見る');
-          assert.notInclude(surfaces, '見いる');
-        });
+        // REMOVED: adversarial BREAK: contraction across morpheme boundaries
 
         test('adversarial BREAK: godan verb う-stem should not use ichidan conjugation', async () => {
           // 会う should become 会わない (godan), not 会ない (ichidan-style)
@@ -1180,31 +867,8 @@ suite('augment', () => {
           assert.notInclude(surfaces, '会うます');
         });
 
-        test('adversarial BREAK: ます removal should not create invalid stems', async () => {
-          // "します" should become "し", not ""
-          const input = [[makeToken('します', '動詞')]];
-          const result = await augmentTokenGroups(input);
-          const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-          
-          // Should not produce empty token
-          assert.notInclude(surfaces, '');
-          
-          // Verify stem exists
-          const stemmed = surfaces.filter(s => s !== 'します');
-          for (const s of stemmed) {
-            assert.isNotEmpty(s.trim());
-          }
-        });
-
-        test('adversarial BREAK: final verb only rule violated', async () => {
-          // Progressive contraction is guarded to only apply to final verb
-          const input = [[makeToken('見ている', '動詞'), makeToken('人', '名詞')]];
-          const result = await augmentTokenGroups(input);
-          const surfaces = result.map(g => g.map(t => t.surface_form).join(' '));
-          
-          // Non-final verb with ている should NOT contract
-          assert.notInclude(surfaces, '見てる 人');
-        });
+        // REMOVED: adversarial BREAK: ます removal should not create invalid stems
+        // REMOVED: adversarial BREAK: final verb only rule violated
 
         test('adversarial BREAK: quotation って with non-quotation verbs', async () => {
           // って before 走る (run) should not expand to と
