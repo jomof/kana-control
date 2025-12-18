@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import {tokenize} from './tokenize.js';
-import {augmentTokenGroups} from './augment.js';
+import { tokenize } from './tokenize.js';
+import { augmentTokenGroups } from './augment.js';
 
 /**
  * A Token represents a parsed Japanese morpheme with optional marking state.
@@ -64,13 +64,13 @@ export function findMatch(
 export function markTokens(
   tokens: Token[],
   str: string
-): {matched: number[] | null};
+): { matched: number[] | null };
 
 /** Nested‐array overload */
 export function markTokens(
   tokens: Token[][],
   str: string
-): {matched: number[] | null}[];
+): { matched: number[] | null }[];
 
 /**
  * If given a flat Token[], tries to match & flip exactly as before.
@@ -81,7 +81,7 @@ export function markTokens(
 export function markTokens(
   tokens: Token[] | Token[][],
   str: string
-): {matched: number[] | null} | {matched: number[] | null}[] {
+): { matched: number[] | null } | { matched: number[] | null }[] {
   // ——— Nested case ———
   if (tokens.length > 0 && Array.isArray(tokens[0])) {
     const groups = tokens as Token[][];
@@ -89,9 +89,9 @@ export function markTokens(
 
     return groups.map((g) => {
       if (candidateGroups.includes(g)) {
-        return markTokens(g, str) as {matched: number[] | null};
+        return markTokens(g, str) as { matched: number[] | null };
       } else {
-        return {matched: null};
+        return { matched: null };
       }
     });
   }
@@ -100,7 +100,7 @@ export function markTokens(
   const flat = tokens as Token[];
   const matchIndices = findMatch(flat, str, 0, 0);
   if (!matchIndices) {
-    return {matched: null};
+    return { matched: null };
   }
 
   const newlyMarked: number[] = [];
@@ -110,7 +110,7 @@ export function markTokens(
       newlyMarked.push(idx);
     }
   }
-  return {matched: newlyMarked};
+  return { matched: newlyMarked };
 }
 
 /**
@@ -133,7 +133,7 @@ export function getGroupsWithMaxMarkedTokens(groups: Token[][]): Token[][] {
 /**
  * Returns true if any token was newly marked.
  */
-export function anyMarked(result: {matched: number[] | null}[]): boolean {
+export function anyMarked(result: { matched: number[] | null }[]): boolean {
   return result.some((r) => r.matched !== null && r.matched.length > 0);
 }
 
@@ -213,7 +213,7 @@ export async function makeQuestion(
 }
 
 export function parseEnglishString(eng: string): ParsedEnglish {
-  const regex = /(\w+)\s*(?:\[([^\]]+)\])?/g;
+  const regex = /([a-zA-Z0-9_']+)\s*(?:\[([^\]]+)\])?/g;
   const parts: ParsedEnglish = [];
   let match;
   while ((match = regex.exec(eng)) !== null) {
