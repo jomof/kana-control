@@ -4,12 +4,13 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import {LitElement, html, css} from 'lit';
-import {customElement, property, state} from 'lit/decorators.js';
+import { LitElement, html, css } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
 import * as wanakana from 'wanakana';
 import {
   Token,
   Question,
+  GrammarAnalysis,
   ParsedEnglish,
   markTokens,
   anyMarked,
@@ -19,7 +20,7 @@ import {
 } from './kana-control-logic.js';
 
 // Re-export for consumers
-export {Token, Question, ParsedEnglish, makeQuestion} from './kana-control-logic.js';
+export { Token, Question, GrammarAnalysis, ParsedEnglish, makeQuestion } from './kana-control-logic.js';
 
 const DEFAULT_INITIAL_SCORE = 100;
 const DEFAULT_CORRECT_GUESS_FACTOR = 0.95;
@@ -176,6 +177,66 @@ export class KanaControl extends LitElement {
         margin-bottom: 8px;
         font-size: 18px;
         color: #666;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+      }
+
+      .possible-answer:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      .grammar-badges {
+        display: flex;
+        justify-content: center;
+        gap: 4px;
+        margin-top: 4px;
+        flex-wrap: wrap;
+      }
+
+      .grammar-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        color: white;
+        text-transform: uppercase;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+      }
+
+      .grammar-badge.formality-formal { background: #2196f3; }
+      .grammar-badge.formality-neutral { background: #9e9e9e; }
+      .grammar-badge.formality-casual { background: #ff9800; }
+
+      .grammar-badge.gender-masculine { background: #3f51b5; }
+      .grammar-badge.gender-feminine { background: #e91e63; }
+
+      .grammar-badge.register { background: #673ab7; }
+
+      .grammar-detail {
+        margin-top: 8px;
+        padding: 12px;
+        background: #f5f5f5;
+        border-radius: 8px;
+        font-size: 14px;
+        text-align: left;
+      }
+
+      .grammar-detail-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+
+      .grammar-detail-label {
+        font-weight: 500;
+        color: #666;
+      }
+
+      .grammar-detail-value {
+        color: #333;
       }
 
       /* Dark mode adjustments */
@@ -201,6 +262,18 @@ export class KanaControl extends LitElement {
         }
         .possible-answer {
           color: #aaa;
+        }
+        .possible-answer:hover {
+          background-color: rgba(255, 255, 255, 0.05);
+        }
+        .grammar-detail {
+          background: #2a2a2a;
+        }
+        .grammar-detail-label {
+          color: #aaa;
+        }
+        .grammar-detail-value {
+          color: #ddd;
         }
       }
   `;
@@ -248,29 +321,36 @@ export class KanaControl extends LitElement {
   private _revealedAnswer = false;
 
   /**
+   * The answer text for which grammar detail is currently expanded.
+   * null if no grammar detail is shown.
+   */
+  @state()
+  private _expandedGrammarAnswer: string | null = null;
+
+  /**
    * Debug mode - shows all possible remaining sentences.
    */
-  @property({type: Boolean})
+  @property({ type: Boolean })
   debug = false;
 
   /**
    * Initial score for a question. Defaults to 100.
    */
-  @property({type: Number})
+  @property({ type: Number })
   initialScore = DEFAULT_INITIAL_SCORE;
 
   /**
    * Factor to multiply score by when a correct guess is made.
    * Defaults to 0.95.
    */
-  @property({type: Number})
+  @property({ type: Number })
   correctGuessFactor = DEFAULT_CORRECT_GUESS_FACTOR;
 
   /**
    * Factor to multiply score by when an incorrect guess is made.
    * Defaults to 0.7.
    */
-  @property({type: Number})
+  @property({ type: Number })
   incorrectGuessFactor = DEFAULT_INCORRECT_GUESS_FACTOR;
 
   /**
@@ -307,14 +387,15 @@ export class KanaControl extends LitElement {
     this._correctAttempts = [];
     this._revealedHintIndices.clear();
     this._revealedAnswer = false;
+    this._expandedGrammarAnswer = null;
     this.score = -1;
-    
+
     // Clear input when new question is supplied
     const input = this.renderRoot.querySelector('#kana-input') as HTMLInputElement | null;
     if (input) {
       input.value = '';
     }
-    
+
     this.requestUpdate();
   }
 
@@ -348,21 +429,21 @@ export class KanaControl extends LitElement {
         ? html`
             <div id="english" part="english">
               ${this.parsedEnglish.map(
-                (part, index) => html`
+          (part, index) => html`
                   <span
                     class="english-word"
                     ?has-furigana=${part.furigana !== ''}
                     @click=${() => this._handleEnglishWordClick(index)}
                   >
                     ${this._furiganaVisibility[index] && part.furigana
-                      ? html`<ruby
+              ? html`<ruby
                           ><rb>${part.englishWord}</rb
                           ><rt>${part.furigana}</rt></ruby
                         >`
-                      : part.englishWord}
+              : part.englishWord}
                   </span>
                 `
-              )}
+        )}
             </div>
           `
         : html`<div id="english" part="english" style="color: #999;">
@@ -408,7 +489,7 @@ export class KanaControl extends LitElement {
     ) as HTMLInputElement | null;
     if (input) {
       // Bind WanaKana IME to convert romaji to kana as user types
-      wanakana.bind(input, {IMEMode: true});
+      wanakana.bind(input, { IMEMode: true });
     }
   }
 
@@ -416,7 +497,7 @@ export class KanaControl extends LitElement {
     if (!this.question || e.key !== 'Enter' || this._revealedAnswer) return;
 
     const groups = this.question.parsed as Token[][];
-    
+
     // If the question is already completed, pressing Enter requests the next question
     const currentBest = selectBestGroup(groups);
     if (isCompleted(currentBest)) {
@@ -434,13 +515,14 @@ export class KanaControl extends LitElement {
 
     const input = e.target as HTMLInputElement;
     const value = input.value;
-    const katakana = wanakana.toKatakana(value);
-    
-    const marked = markTokens(groups, katakana);
-    
+    // Convert input to hiragana for matching (readings are stored as hiragana)
+    const hiragana = wanakana.toHiragana(value);
+
+    const marked = markTokens(groups, hiragana);
+
     if (anyMarked(marked)) {
       this._correctAttempts = [...this._correctAttempts, value];
-      
+
       const best = selectBestGroup(groups);
       const completed = isCompleted(best);
 
@@ -466,14 +548,14 @@ export class KanaControl extends LitElement {
       }
     } else {
       this._wrongAttempts++;
-      
+
       // Update score for incorrect guess.
       // Score is multiplied by incorrectGuessFactor (e.g. 0.7).
       let currentScore = this.score === -1 ? this.initialScore : this.score;
       currentScore = Math.round(currentScore * this.incorrectGuessFactor);
       this.score = currentScore;
     }
-    
+
     // Always trigger re-render to update skeleton
     this.requestUpdate();
   }
@@ -509,13 +591,13 @@ export class KanaControl extends LitElement {
       }));
     } else if (hasProgress) {
       // User has progress, reveal answer
-      
+
       // Calculate score penalty for revealing answer.
       // The penalty is applied for each missing token (excluding punctuation).
       // For each missing token, the score is multiplied by incorrectGuessFactor (e.g. 0.7).
       const missingTokens = best.filter(t => !t.marked && t.pos !== '記号').length;
       let currentScore = this.score === -1 ? this.initialScore : this.score;
-      
+
       for (let i = 0; i < missingTokens; i++) {
         currentScore = Math.round(currentScore * this.incorrectGuessFactor);
       }
@@ -541,12 +623,12 @@ export class KanaControl extends LitElement {
     if (!this.question) return {};
     const groups = this.question.parsed as Token[][];
     const best = selectBestGroup(groups);
-    
+
     const finalSkeleton = best.map(t => {
       if (t.pos === '記号') return t.surface_form;
       return t.marked ? t.surface_form : '_'.repeat(t.surface_form.length);
     }).join('');
-    
+
     const englishHints = Array.from(this._revealedHintIndices)
       .sort((a, b) => a - b)
       .map(i => this.parsedEnglish[i].englishWord);
@@ -586,46 +668,49 @@ export class KanaControl extends LitElement {
     const groups = this.question.parsed as Token[][];
     const best = selectBestGroup(groups);
     const completed = isCompleted(best);
+    const bestString = best.map(t => t.surface_form).join('');
+    const grammar = this.question.answerGrammar?.[bestString];
 
     return html`
       <div class="skeleton">
         ${best.map(
-          (t) => {
-            if (t.pos === '記号') {
-              return html`${t.surface_form}`;
-            }
-            
-            if (this._revealedAnswer) {
-              // In revealed state, show everything.
-              // If it was marked, show normally. If not, show as missed (yellow).
-              const isMissed = !t.marked;
-              const className = isMissed ? 'token missed' : 'token marked';
+      (t) => {
+        if (t.pos === '記号') {
+          return html`${t.surface_form}`;
+        }
 
-              if (isMissed && t.reading) {
-                const hiragana = wanakana.toHiragana(t.reading);
-                const surfaceHiragana = wanakana.toHiragana(t.surface_form);
-                if (hiragana !== surfaceHiragana) {
-                  return html`<span class="${className}"
+        if (this._revealedAnswer) {
+          // In revealed state, show everything.
+          // If it was marked, show normally. If not, show as missed (yellow).
+          const isMissed = !t.marked;
+          const className = isMissed ? 'token missed' : 'token marked';
+
+          if (isMissed && t.reading) {
+            const hiragana = wanakana.toHiragana(t.reading);
+            const surfaceHiragana = wanakana.toHiragana(t.surface_form);
+            if (hiragana !== surfaceHiragana) {
+              return html`<span class="${className}"
                     ><ruby>${t.surface_form}<rt>${hiragana}</rt></ruby></span
                   >`;
-                }
-              }
+            }
+          }
 
-              return html`<span class="${className}"
+          return html`<span class="${className}"
                   >${t.surface_form}</span
                 >`;
-            }
+        }
 
-            // Normal state
-            return html`<span class="token ${t.marked ? 'marked' : ''}"
+        // Normal state
+        return html`<span class="token ${t.marked ? 'marked' : ''}"
                   >${t.marked
-                    ? t.surface_form
-                    : '_'.repeat(t.surface_form.length)}</span
+            ? t.surface_form
+            : '_'.repeat(t.surface_form.length)}</span
                 >`;
-          }
-        )}
+      }
+    )}
         ${completed ? html`<span class="completed">✓</span>` : ''}
       </div>
+      ${(completed || this._revealedAnswer) && grammar ? this._renderGrammarBadges(grammar) : null}
     `;
   }
 
@@ -635,32 +720,105 @@ export class KanaControl extends LitElement {
     const groups = this.question.parsed as Token[][];
     const best = selectBestGroup(groups);
     const bestString = best.map(t => t.surface_form).join('');
-    
+
     // Filter out the answer the user just completed
     const otherGroups = groups.filter(g => g.map(t => t.surface_form).join('') !== bestString);
-    
+
     if (otherGroups.length === 0) return null;
 
     return html`
       <div id="possible-answers">
         <div style="font-size: 14px; color: #888; margin-bottom: 8px;">Other possible answers:</div>
-        ${otherGroups.map(group => html`
-          <div class="possible-answer">
-            ${group.map(t => {
-               if (t.pos === '記号') {
-                 return html`${t.surface_form}`;
-               }
-               if (t.reading) {
-                 const hiragana = wanakana.toHiragana(t.reading);
-                 const surfaceHiragana = wanakana.toHiragana(t.surface_form);
-                 if (hiragana !== surfaceHiragana) {
-                   return html`<ruby>${t.surface_form}<rt>${hiragana}</rt></ruby>`;
-                 }
-               }
-               return html`${t.surface_form}`;
-            })}
-          </div>
-        `)}
+        ${otherGroups.map(group => {
+      const answerText = group.map(t => t.surface_form).join('');
+      const grammar = this.question?.answerGrammar?.[answerText];
+      const isExpanded = this._expandedGrammarAnswer === answerText;
+
+      return html`
+            <div class="possible-answer" @click=${() => this._toggleGrammarDetail(answerText)}>
+              <div>
+                ${group.map(t => {
+        if (t.pos === '記号') {
+          return html`${t.surface_form}`;
+        }
+        if (t.reading) {
+          const hiragana = wanakana.toHiragana(t.reading);
+          const surfaceHiragana = wanakana.toHiragana(t.surface_form);
+          if (hiragana !== surfaceHiragana) {
+            return html`<ruby>${t.surface_form}<rt>${hiragana}</rt></ruby>`;
+          }
+        }
+        return html`${t.surface_form}`;
+      })}
+              </div>
+              ${grammar ? this._renderGrammarBadges(grammar) : null}
+              ${grammar && isExpanded ? this._renderGrammarDetail(grammar) : null}
+            </div>
+          `;
+    })}
+      </div>
+    `;
+  }
+
+  private _toggleGrammarDetail(answerText: string) {
+    if (this._expandedGrammarAnswer === answerText) {
+      this._expandedGrammarAnswer = null;
+    } else {
+      this._expandedGrammarAnswer = answerText;
+    }
+    this.requestUpdate();
+  }
+
+  private _renderGrammarBadges(grammar: GrammarAnalysis) {
+    const badges = [];
+
+    // Formality badge
+    badges.push(html`
+      <span class="grammar-badge formality-${grammar.formality}">
+        ${grammar.formality}
+      </span>
+    `);
+
+    // Gender badge (only if not neutral)
+    if (grammar.gender !== 'neutral') {
+      badges.push(html`
+        <span class="grammar-badge gender-${grammar.gender}">
+          ${grammar.gender}
+        </span>
+      `);
+    }
+
+    // Register badges (only non-neutral)
+    for (const register of grammar.registers) {
+      if (register !== 'neutral') {
+        badges.push(html`
+          <span class="grammar-badge register">${register}</span>
+        `);
+      }
+    }
+
+    return html`<div class="grammar-badges">${badges}</div>`;
+  }
+
+  private _renderGrammarDetail(grammar: GrammarAnalysis) {
+    return html`
+      <div class="grammar-detail">
+        <div class="grammar-detail-row">
+          <span class="grammar-detail-label">Formality:</span>
+          <span class="grammar-detail-value">${grammar.formality} (${grammar.formality_score.toFixed(3)})</span>
+        </div>
+        <div class="grammar-detail-row">
+          <span class="grammar-detail-label">Gender:</span>
+          <span class="grammar-detail-value">${grammar.gender} (${grammar.gender_score.toFixed(3)})</span>
+        </div>
+        <div class="grammar-detail-row">
+          <span class="grammar-detail-label">Registers:</span>
+          <span class="grammar-detail-value">${grammar.registers.join(', ') || 'none'}</span>
+        </div>
+        <div class="grammar-detail-row">
+          <span class="grammar-detail-label">Grammaticality:</span>
+          <span class="grammar-detail-value">${grammar.is_grammatic ? '✓' : '✗'} (${(grammar.grammaticality_score * 100).toFixed(1)}%)</span>
+        </div>
       </div>
     `;
   }
@@ -671,7 +829,7 @@ export class KanaControl extends LitElement {
     }
 
     const groups = this.question.parsed as Token[][];
-    
+
     // Filter to only show groups that could still be completed
     // (groups where all marked tokens are still valid)
     const validGroups = groups.filter(group => {
@@ -687,12 +845,12 @@ export class KanaControl extends LitElement {
         Debug: ${validGroups.length} possible sentence${validGroups.length !== 1 ? 's' : ''}
       </div>
       ${validGroups.map(
-        (group, idx) => html`
+      (group, idx) => html`
           <div style="padding: 2px 0; color: #333;">
             ${idx + 1}. ${group.map(t => t.surface_form).join('')}
           </div>
         `
-      )}
+    )}
     `;
   }
 }
