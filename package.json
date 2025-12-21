@@ -72,7 +72,7 @@
     "@web/test-runner-playwright": "^0.11.1",
     "@webcomponents/webcomponentsjs": "^2.8.0",
     "chai": "^6.2.1",
-    "eslint": "^8.57.0",
+    "eslint": "^9.39.2",
     "lit-analyzer": "^2.0.3",
     "mocha": "^11.7.5",
     "prettier": "^2.6.2",
