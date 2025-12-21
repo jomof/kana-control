@@ -174,6 +174,11 @@ export class KanaControl extends LitElement {
       }
 
       .possible-answer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: nowrap;
         margin-bottom: 8px;
         font-size: 18px;
         color: #666;
@@ -187,11 +192,18 @@ export class KanaControl extends LitElement {
         background-color: rgba(0, 0, 0, 0.05);
       }
 
+      .skeleton-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
       .grammar-badges {
         display: flex;
-        justify-content: center;
+        align-items: center;
         gap: 4px;
-        margin-top: 4px;
         flex-wrap: wrap;
       }
 
@@ -401,7 +413,7 @@ export class KanaControl extends LitElement {
 
   override render() {
     const groups = this.question ? (this.question.parsed as Token[][]) : [];
-    const best = groups.length > 0 ? selectBestGroup(groups) : [];
+    const best = groups.length > 0 ? selectBestGroup(groups, this.question?.answerGrammar) : [];
     const completed = groups.length > 0 ? isCompleted(best) : false;
     const hasProgress = best.some(t => t.marked);
 
@@ -499,7 +511,7 @@ export class KanaControl extends LitElement {
     const groups = this.question.parsed as Token[][];
 
     // If the question is already completed, pressing Enter requests the next question
-    const currentBest = selectBestGroup(groups);
+    const currentBest = selectBestGroup(groups, this.question.answerGrammar);
     if (isCompleted(currentBest)) {
       this.dispatchEvent(new CustomEvent('question-complete', {
         bubbles: true,
@@ -523,7 +535,7 @@ export class KanaControl extends LitElement {
     if (anyMarked(marked)) {
       this._correctAttempts = [...this._correctAttempts, value];
 
-      const best = selectBestGroup(groups);
+      const best = selectBestGroup(groups, this.question.answerGrammar);
       const completed = isCompleted(best);
 
       if (completed) {
@@ -564,7 +576,7 @@ export class KanaControl extends LitElement {
     if (!this.question) return;
 
     const groups = this.question.parsed as Token[][];
-    const best = selectBestGroup(groups);
+    const best = selectBestGroup(groups, this.question.answerGrammar);
     const completed = isCompleted(best);
     const hasProgress = best.some(t => t.marked);
 
@@ -622,7 +634,7 @@ export class KanaControl extends LitElement {
   private _getEventDetail() {
     if (!this.question) return {};
     const groups = this.question.parsed as Token[][];
-    const best = selectBestGroup(groups);
+    const best = selectBestGroup(groups, this.question.answerGrammar);
 
     const finalSkeleton = best.map(t => {
       if (t.pos === '記号') return t.surface_form;
@@ -666,16 +678,18 @@ export class KanaControl extends LitElement {
     }
 
     const groups = this.question.parsed as Token[][];
-    const best = selectBestGroup(groups);
+    const best = selectBestGroup(groups, this.question.answerGrammar);
     const completed = isCompleted(best);
     const bestString = best.map(t => t.surface_form).join('');
     const grammar = this.question.answerGrammar?.[bestString];
 
     return html`
-      <div class="skeleton">
-        ${best.map(
+      <div class="skeleton-wrapper">
+        <div class="skeleton">
+          ${best.map(
       (t) => {
-        if (t.pos === '記号') {
+        const isPunctuation = t.pos === '記号' || t.pos?.startsWith('aux-symbol');
+        if (isPunctuation) {
           return html`${t.surface_form}`;
         }
 
@@ -690,27 +704,28 @@ export class KanaControl extends LitElement {
             const surfaceHiragana = wanakana.toHiragana(t.surface_form);
             if (hiragana !== surfaceHiragana) {
               return html`<span class="${className}"
-                    ><ruby>${t.surface_form}<rt>${hiragana}</rt></ruby></span
-                  >`;
+                      ><ruby>${t.surface_form}<rt>${hiragana}</rt></ruby></span
+                    >`;
             }
           }
 
           return html`<span class="${className}"
-                  >${t.surface_form}</span
-                >`;
+                    >${t.surface_form}</span
+                  >`;
         }
 
         // Normal state
         return html`<span class="token ${t.marked ? 'marked' : ''}"
-                  >${t.marked
+                    >${t.marked
             ? t.surface_form
             : '_'.repeat(t.surface_form.length)}</span
-                >`;
+                  >`;
       }
     )}
-        ${completed ? html`<span class="completed">✓</span>` : ''}
+          ${completed ? html`<span class="completed">✓</span>` : ''}
+        </div>
+        ${(completed || this._revealedAnswer) && grammar ? this._renderGrammarBadges(grammar) : null}
       </div>
-      ${(completed || this._revealedAnswer) && grammar ? this._renderGrammarBadges(grammar) : null}
     `;
   }
 
@@ -718,7 +733,7 @@ export class KanaControl extends LitElement {
     if (!this.question) return null;
 
     const groups = this.question.parsed as Token[][];
-    const best = selectBestGroup(groups);
+    const best = selectBestGroup(groups, this.question.answerGrammar);
     const bestString = best.map(t => t.surface_form).join('');
 
     // Filter out the answer the user just completed
@@ -772,12 +787,14 @@ export class KanaControl extends LitElement {
   private _renderGrammarBadges(grammar: GrammarAnalysis) {
     const badges = [];
 
-    // Formality badge
-    badges.push(html`
-      <span class="grammar-badge formality-${grammar.formality}">
-        ${grammar.formality}
-      </span>
-    `);
+    // Formality badge (only if not neutral)
+    if (grammar.formality !== 'neutral') {
+      badges.push(html`
+        <span class="grammar-badge formality-${grammar.formality}">
+          ${grammar.formality}
+        </span>
+      `);
+    }
 
     // Gender badge (only if not neutral)
     if (grammar.gender !== 'neutral') {

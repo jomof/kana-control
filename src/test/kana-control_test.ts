@@ -706,4 +706,19 @@ suite('kana-control', () => {
     const combinedText = Array.from(answers).map(a => a.textContent).join(' ');
     assert.include(combinedText, 'あり');
   });
+
+  test('skeleton prefills punctuation tokens', async () => {
+    const el = (await fixture(
+      html`<kana-control></kana-control>`
+    )) as KanaControl;
+    const q = await makeQuestion('I am a student.', [
+      '私は学生です。',
+    ], TEST_GRAMMAR);
+    await el.supplyQuestion(q);
+    await el.updateComplete;
+
+    const skeleton = el.shadowRoot!.querySelector('.skeleton');
+    assert.ok(skeleton, 'Skeleton should exist');
+    assert.include(skeleton!.textContent!, '。', 'Skeleton should immediately contain punctuation');
+  });
 });

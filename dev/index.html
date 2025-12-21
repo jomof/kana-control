@@ -1,462 +1,104 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>&lt;kana-control&gt; Demo</title>
-    <script src="../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
-    <script src="../node_modules/lit/polyfill-support.js"></script>
-    <script type="module" src="../kana-control.js"></script>
-    <link rel="stylesheet" href="./dev.css" />
-  </head>
-  <body>
-    <script type="module">
-      document.addEventListener('readystatechange', () =>
-        console.log('readystatechange:', document.readyState)
-      );
 
-      import {makeQuestion} from '../kana-control.js';
+<head>
+  <meta charset="utf-8" />
+  <title>&lt;kana-control&gt; Demo</title>
+  <script src="../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+  <script src="../node_modules/lit/polyfill-support.js"></script>
+  <script type="module" src="../kana-control.js"></script>
+  <link rel="stylesheet" href="./dev.css" />
+</head>
 
-      // Demo grammar data - auto-generated
-      // Regenerate with: /Users/jomofisher/projects/kotogram/.venv/bin/python scripts/gen-demo-grammar.py
-      const DEMO_GRAMMAR = {
-        '日本に行ったことがありますか。': {
-          kotogram: '⌈ˢ日本ᵖnoun:proper-noun:place-name:countryʳニッポン⌉⌈ˢにᵖparticle:case-particleʳニ⌉⌈ˢ行っᵖverb:bound:godan-ka:continuative-geminateᵇ行くᵈ行くʳイッ⌉⌈ˢたᵖaux-verb:aux-ta:attributiveʳタ⌉⌈ˢことᵖnoun:common-nounʳコト⌉⌈ˢがᵖparticle:case-particleʳガ⌉⌈ˢありᵖverb:bound:godan-ra:continuativeᵇあるᵈあるʳアリ⌉⌈ˢますᵖaux-verb:aux-masu:terminalʳマス⌉⌈ˢかᵖparticle:sentence-final-particleʳカ⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '日本に行ったことある。': {
-          kotogram: '⌈ˢ日本ᵖnoun:proper-noun:place-name:countryʳニッポン⌉⌈ˢにᵖparticle:case-particleʳニ⌉⌈ˢ行っᵖverb:bound:godan-ka:continuative-geminateᵇ行くᵈ行くʳイッ⌉⌈ˢたᵖaux-verb:aux-ta:attributiveʳタ⌉⌈ˢことᵖnoun:common-nounʳコト⌉⌈ˢあるᵖverb:bound:godan-ra:terminalʳアル⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'neutral',
-          formality_score: 0,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私はシアトルに住んでいます。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢシアトルᵖnoun:proper-noun:place-name⌉⌈ˢにᵖparticle:case-particleʳニ⌉⌈ˢ住んᵖverb:general:godan-ma:continuative-nasalᵇ住むᵈ住むʳスン⌉⌈ˢでᵖparticle:conjunctive-particleʳデ⌉⌈ˢいᵖverb:bound:upper-ichidan-a:continuativeᵇいるᵈいるʳイ⌉⌈ˢますᵖaux-verb:aux-masu:terminalʳマス⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私はシアトルに住んでる。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢシアトルᵖnoun:proper-noun:place-name⌉⌈ˢにᵖparticle:case-particleʳニ⌉⌈ˢ住んᵖverb:general:godan-ma:continuative-nasalᵇ住むᵈ住むʳスン⌉⌈ˢでるᵖverb:general:lower-ichidan-:terminalᵇでるᵈでるʳデル⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'neutral',
-          formality_score: 0,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は学生です。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ学生ᵖnoun:common-nounʳガクセイ⌉⌈ˢですᵖaux-verb:aux-desu:terminalʳデス⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は先生です。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ先生ᵖnoun:common-nounʳセンセイ⌉⌈ˢですᵖaux-verb:aux-desu:terminalʳデス⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は毎日寿司を食べます。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ毎日ᵖnoun:common-nounʳマイニチ⌉⌈ˢ寿司ᵖnoun:common-nounʳスシ⌉⌈ˢをᵖparticle:case-particleʳヲ⌉⌈ˢ食べᵖverb:general:lower-ichidan-ba:continuativeᵇ食べるᵈ食べるʳタベ⌉⌈ˢますᵖaux-verb:aux-masu:terminalʳマス⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は毎日寿司を食べる。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ毎日ᵖnoun:common-nounʳマイニチ⌉⌈ˢ寿司ᵖnoun:common-nounʳスシ⌉⌈ˢをᵖparticle:case-particleʳヲ⌉⌈ˢ食べるᵖverb:general:lower-ichidan-ba:terminalᵇ食べるᵈ食べるʳタベル⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'neutral',
-          formality_score: 0,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は日本語を話すことができます。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ日本語ᵖnoun:common-nounʳニホンゴ⌉⌈ˢをᵖparticle:case-particleʳヲ⌉⌈ˢ話すᵖverb:general:godan-sa:attributiveᵇ話すᵈ話すʳハナス⌉⌈ˢことᵖnoun:common-nounʳコト⌉⌈ˢがᵖparticle:case-particleʳガ⌉⌈ˢできᵖverb:bound:upper-ichidan-ka:continuativeᵇできるᵈできるʳデキ⌉⌈ˢますᵖaux-verb:aux-masu:terminalʳマス⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は日本語を話すことができる。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ日本語ᵖnoun:common-nounʳニホンゴ⌉⌈ˢをᵖparticle:case-particleʳヲ⌉⌈ˢ話すᵖverb:general:godan-sa:attributiveᵇ話すᵈ話すʳハナス⌉⌈ˢことᵖnoun:common-nounʳコト⌉⌈ˢがᵖparticle:case-particleʳガ⌉⌈ˢできるᵖverb:general:upper-ichidan-ka:terminalᵇできるᵈできるʳデキル⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'neutral',
-          formality_score: 0,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は日本語が話せます。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ日本語ᵖnoun:common-nounʳニホンゴ⌉⌈ˢがᵖparticle:case-particleʳガ⌉⌈ˢ話せᵖverb:general:lower-ichidan-sa:continuativeᵇ話せるᵈ話せるʳハナセ⌉⌈ˢますᵖaux-verb:aux-masu:terminalʳマス⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は日本語が話せる。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ日本語ᵖnoun:common-nounʳニホンゴ⌉⌈ˢがᵖparticle:case-particleʳガ⌉⌈ˢ話せるᵖverb:general:lower-ichidan-sa:terminalᵇ話せるᵈ話せるʳハナセル⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'neutral',
-          formality_score: 0,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は去年東京に行きました。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ去年ᵖnoun:common-nounʳキョネン⌉⌈ˢ東京ᵖnoun:proper-noun:place-nameʳトウキョウ⌉⌈ˢにᵖparticle:case-particleʳニ⌉⌈ˢ行きᵖverb:bound:godan-ka:continuativeᵇ行くᵈ行くʳイキ⌉⌈ˢましᵖaux-verb:aux-masu:continuativeᵇますᵈますʳマシ⌉⌈ˢたᵖaux-verb:aux-ta:terminalʳタ⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は去年東京にいった。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ去年ᵖnoun:common-nounʳキョネン⌉⌈ˢ東京ᵖnoun:proper-noun:place-nameʳトウキョウ⌉⌈ˢにᵖparticle:case-particleʳニ⌉⌈ˢいっᵖverb:bound:godan-ka:continuative-geminateᵇいくᵈいくʳイッ⌉⌈ˢたᵖaux-verb:aux-ta:terminalʳタ⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'neutral',
-          formality_score: 0,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は今本を読んでいます。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ今ᵖnoun:common-nounʳイマ⌉⌈ˢ本ᵖnoun:common-nounʳホン⌉⌈ˢをᵖparticle:case-particleʳヲ⌉⌈ˢ読んᵖverb:general:godan-ma:continuative-nasalᵇ読むᵈ読むʳヨン⌉⌈ˢでᵖparticle:conjunctive-particleʳデ⌉⌈ˢいᵖverb:bound:upper-ichidan-a:continuativeᵇいるᵈいるʳイ⌉⌈ˢますᵖaux-verb:aux-masu:terminalʳマス⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は今本を読んでいる。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ今ᵖnoun:common-nounʳイマ⌉⌈ˢ本ᵖnoun:common-nounʳホン⌉⌈ˢをᵖparticle:case-particleʳヲ⌉⌈ˢ読んᵖverb:general:godan-ma:continuative-nasalᵇ読むᵈ読むʳヨン⌉⌈ˢでᵖparticle:conjunctive-particleʳデ⌉⌈ˢいるᵖverb:bound:upper-ichidan-a:terminalᵇいるᵈいるʳイル⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'neutral',
-          formality_score: 0,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は日本に行きたいです。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ日本ᵖnoun:proper-noun:place-name:countryʳニッポン⌉⌈ˢにᵖparticle:case-particleʳニ⌉⌈ˢ行きᵖverb:bound:godan-ka:continuativeᵇ行くᵈ行くʳイキ⌉⌈ˢたいᵖaux-verb:aux-tai:terminalʳタイ⌉⌈ˢですᵖaux-verb:aux-desu:terminalʳデス⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は先生でした。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ先生ᵖnoun:common-nounʳセンセイ⌉⌈ˢでしᵖaux-verb:aux-desu:continuativeᵇですᵈですʳデシ⌉⌈ˢたᵖaux-verb:aux-ta:terminalʳタ⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私は肉は食べません。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ肉ᵖnoun:common-nounʳニク⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ食べᵖverb:general:lower-ichidan-ba:continuativeᵇ食べるᵈ食べるʳタベ⌉⌈ˢませᵖaux-verb:aux-masu:irrealisᵇますᵈますʳマセ⌉⌈ˢんᵖaux-verb:aux-nu:terminal-nasalᵇぬᵈぬʳン⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '私はいいと思います。': {
-          kotogram: '⌈ˢ私ᵖpronʳワタクシ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢいいᵖadj:bound:i-adjective:terminalʳイイ⌉⌈ˢとᵖparticle:case-particleʳト⌉⌈ˢ思いᵖverb:general:godan-waa:continuativeᵇ思うᵈ思うʳオモイ⌉⌈ˢますᵖaux-verb:aux-masu:terminalʳマス⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        '彼女は忙しいと言います。': {
-          kotogram: '⌈ˢ彼女ᵖpronʳカノジョ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ忙しいᵖadj:general:i-adjective:terminalʳイソガシイ⌉⌈ˢとᵖparticle:case-particleʳト⌉⌈ˢ言いᵖverb:general:godan-waa:continuativeᵇ言うᵈ言うʳイイ⌉⌈ˢますᵖaux-verb:aux-masu:terminalʳマス⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        'それは猫ではありません。': {
-          kotogram: '⌈ˢそれᵖpronʳソレ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ猫ᵖnoun:common-nounʳネコ⌉⌈ˢでᵖparticle:case-particleʳデ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢありᵖverb:bound:godan-ra:continuativeᵇあるᵈあるʳアリ⌉⌈ˢませᵖaux-verb:aux-masu:irrealisᵇますᵈますʳマセ⌉⌈ˢんᵖaux-verb:aux-nu:terminal-nasalᵇぬᵈぬʳン⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-        'あなたは知っていますか。': {
-          kotogram: '⌈ˢあなたᵖpronʳアナタ⌉⌈ˢはᵖparticle:binding-particleʳハ⌉⌈ˢ知っᵖverb:general:godan-ra:continuative-geminateᵇ知るᵈ知るʳシッ⌉⌈ˢてᵖparticle:conjunctive-particleʳテ⌉⌈ˢいᵖverb:bound:upper-ichidan-a:continuativeᵇいるᵈいるʳイ⌉⌈ˢますᵖaux-verb:aux-masu:terminalʳマス⌉⌈ˢかᵖparticle:sentence-final-particleʳカ⌉⌈ˢ。ᵖaux-symbol:period⌉',
-          formality: 'formal',
-          formality_score: 0.5,
-          formality_is_pragmatic: true,
-          gender: 'neutral',
-          gender_score: 0,
-          gender_is_pragmatic: true,
-          registers: ['neutral'],
-          register_scores: {},
-          is_grammatic: true,
-          grammaticality_score: 0.99,
-        },
-      };
+<body>
+  <script type="module">
+    document.addEventListener('readystatechange', () =>
+      console.log('readystatechange:', document.readyState)
+    );
 
-      // Wait for DOM to be ready
-      window.addEventListener('DOMContentLoaded', async () => {
-        const control = document.querySelector('kana-control');
-        if (!control) {
-          console.error('kana-control element not found!');
-          return;
-        }
+    import { makeQuestion } from '../kana-control.js';
 
-        try {
-          console.log('Creating questions...');
-          
-          const questions = [
-            await makeQuestion('Have you been[いく] to Japan[にほん]?', [
-              "日本に行ったことがありますか。",
-              "日本に行ったことある。"
-            ], DEMO_GRAMMAR),
+    // Load questions and grammar data from JSON file
+    async function initializeDemo() {
+      const control = document.querySelector('kana-control');
+      if (!control) {
+        console.error('kana-control element not found!');
+        return;
+      }
 
-            await makeQuestion('I live[すむ] in Seattle[シアトル].', [
-              '私はシアトルに住んでいます。',
-              '私はシアトルに住んでる。',
-            ], DEMO_GRAMMAR),
-            
-            await makeQuestion('I am a student[がくせい].', [
-              '私は学生です。',
-            ], DEMO_GRAMMAR),
-            
-            await makeQuestion('I am a teacher[せんせい].', [
-              '私は先生です。',
-            ], DEMO_GRAMMAR),
-            
-            await makeQuestion('I eat[たべる] sushi[すし] every[まい] day[にち].', [
-              '私は毎日寿司を食べます。',
-              '私は毎日寿司を食べる。',
-            ], DEMO_GRAMMAR),
-            
-            await makeQuestion('I can speak[はなす] Japanese[にほんご].', [
-              '私は日本語を話すことができます。',
-              '私は日本語を話すことができる。',
-              '私は日本語が話せます。',
-              '私は日本語が話せる。',
-            ], DEMO_GRAMMAR),
-            
-            await makeQuestion('I went[いく] to Tokyo[とうきょう] last year[きょねん].', [
-              '私は去年東京に行きました。',
-              '私は去年東京にいった。',
-            ], DEMO_GRAMMAR),
-            
-            await makeQuestion('I am reading[よむ] a book[ほん] right now[いま].', [
-              '私は今本を読んでいます。',
-              '私は今本を読んでいる。',
-            ], DEMO_GRAMMAR),
-            
-            await makeQuestion('I want to go[いく] to Japan[にほん].', [
-              '私は日本に行きたいです。',
-            ], DEMO_GRAMMAR),
-            
-            await makeQuestion('I was a teacher[せんせい].', [
-              '私は先生でした。',
-            ], DEMO_GRAMMAR),
-            
-            await makeQuestion('I do not eat[たべる] meat[にく].', [
-              '私は肉は食べません。',
-            ], DEMO_GRAMMAR),
-            
-            await makeQuestion('I think[おもう] that[という] it is good[いい].', [
-              '私はいいと思います。',
-            ], DEMO_GRAMMAR),
-            
-            await makeQuestion('She says[いう] that[という] she is busy[いそがしい].', [
-              '彼女は忙しいと言います。',
-            ], DEMO_GRAMMAR),
-            
-            await makeQuestion('That is not a cat[ねこ].', [
-              'それは猫ではありません。',
-            ], DEMO_GRAMMAR),
-            
-            await makeQuestion('Do you know[しる]?', [
-              'あなたは知っていますか。',
-            ], DEMO_GRAMMAR),
-          ];
+      try {
+        console.log('Loading demo data from grammar.json...');
+        const response = await fetch('./grammar.json');
+        const data = await response.json();
+        const { questions: questionSources, grammar: grammarData } = data;
 
-          console.log('Questions created:', questions);
+        console.log('Creating questions...');
+        const questions = await Promise.all(
+          questionSources.map(source =>
+            makeQuestion(source.english, source.japanese, grammarData)
+          )
+        );
 
-          let currentIndex = 0;
+        console.log('Questions created:', questions);
 
-          // Load first question
-          console.log('Loading first question...');
+        let currentIndex = 0;
+
+        // Load first question
+        console.log('Loading first question...');
+        await control.supplyQuestion(questions[currentIndex]);
+        console.log('First question loaded. parsedEnglish:', control.parsedEnglish);
+
+        // Enable debug mode
+        control.debug = false;
+
+        const advanceQuestion = async () => {
+          currentIndex = (currentIndex + 1) % questions.length;
+          console.log('Loading question', currentIndex);
           await control.supplyQuestion(questions[currentIndex]);
-          console.log('First question loaded. parsedEnglish:', control.parsedEnglish);
-          
-          // Enable debug mode
-          control.debug = false;
+        };
 
-          const advanceQuestion = async () => {
-            currentIndex = (currentIndex + 1) % questions.length;
-            console.log('Loading question', currentIndex);
-            await control.supplyQuestion(questions[currentIndex]);
-          };
+        control.addEventListener('question-complete', (e) => {
+          const { finalSkeleton, wrongAttempts, correctAttempts, englishHints, score } = e.detail;
+          console.log('Question completed!');
+          console.log(`  finalSkeleton (string): "${finalSkeleton}"`);
+          console.log(`  wrongAttempts (number): ${wrongAttempts}`);
+          console.log('  correctAttempts (string[]):', correctAttempts);
+          console.log('  englishHints (string[]):', englishHints);
+          console.log(`  score (number): ${score}`);
+        });
 
-          control.addEventListener('question-complete', (e) => {
-            const {finalSkeleton, wrongAttempts, correctAttempts, englishHints, score} = e.detail;
-            console.log('Question completed!');
-            console.log(`  finalSkeleton (string): "${finalSkeleton}"`);
-            console.log(`  wrongAttempts (number): ${wrongAttempts}`);
-            console.log('  correctAttempts (string[]):', correctAttempts);
-            console.log('  englishHints (string[]):', englishHints);
-            console.log(`  score (number): ${score}`);
-          });
+        control.addEventListener('question-skipped', (e) => {
+          const { finalSkeleton, wrongAttempts, correctAttempts, englishHints, score } = e.detail;
+          console.log('Question skipped!');
+          console.log(`  finalSkeleton (string): "${finalSkeleton}"`);
+          console.log(`  wrongAttempts (number): ${wrongAttempts}`);
+          console.log('  correctAttempts (string[]):', correctAttempts);
+          console.log('  englishHints (string[]):', englishHints);
+          console.log(`  score (number): ${score}`);
+        });
 
-          control.addEventListener('question-skipped', (e) => {
-            const {finalSkeleton, wrongAttempts, correctAttempts, englishHints, score} = e.detail;
-            console.log('Question skipped!');
-            console.log(`  finalSkeleton (string): "${finalSkeleton}"`);
-            console.log(`  wrongAttempts (number): ${wrongAttempts}`);
-            console.log('  correctAttempts (string[]):', correctAttempts);
-            console.log('  englishHints (string[]):', englishHints);
-            console.log(`  score (number): ${score}`);
-          });
-          
-          // Listen for request-next-question event from the component
-          control.addEventListener('request-next-question', () => {
-            console.log('Received request-next-question event');
-            advanceQuestion();
-          });
+        // Listen for request-next-question event from the component
+        control.addEventListener('request-next-question', () => {
+          console.log('Received request-next-question event');
+          advanceQuestion();
+        });
 
-          console.log('Questions loaded. Click words with furigana to toggle pronunciation hints!');
-        } catch (error) {
-          console.error('Failed to create questions:', error);
-        }
-      });
-    </script>
-    
-    <div class="demo">
-      <kana-control></kana-control>
-    </div>
+        console.log('Questions loaded. Click words with furigana to toggle pronunciation hints!');
+      } catch (error) {
+        console.error('Failed to initialize demo:', error);
+      }
+    }
+
+    // Wait for DOM to be ready
+    window.addEventListener('DOMContentLoaded', initializeDemo);
+  </script>
+
+  <div class="demo">
+    <kana-control></kana-control>
+  </div>
 
 
-    <pre id="debug" hidden></pre>
-  </body>
+  <pre id="debug" hidden></pre>
+</body>
+
 </html>

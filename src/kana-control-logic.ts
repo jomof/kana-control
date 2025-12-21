@@ -172,29 +172,47 @@ export function anyMarked(result: { matched: number[] | null }[]): boolean {
  * Selects the "best" token sequence from an array of candidate groups.
  * Criteria:
  *  1. Highest number of tokens with `marked === true`
- *  2. (Tiebreaker) Lowest number of tokens with `marked === false`
+ *  2. (Tiebreaker) Minimize formality_score^2 + gender_score^2 (prefers neutral)
+ *  3. (Tiebreaker) Lexically shortest (surface form length)
  */
-export function selectBestGroup(groups: Token[][]): Token[] {
+export function selectBestGroup(
+  groups: Token[][],
+  answerGrammar?: Record<string, GrammarAnalysis>
+): Token[] {
   if (groups.length === 0) throw new Error('No groups provided');
 
-  const groupsWithMaxMarked = getGroupsWithMaxMarkedTokens(groups);
+  // 1. Highest number of marked tokens
+  const maxMarked = Math.max(...groups.map((g) => g.filter((t) => t.marked).length));
+  const candidates = groups.filter((g) => g.filter((t) => t.marked).length === maxMarked);
 
-  if (groupsWithMaxMarked.length === 1) {
-    return groupsWithMaxMarked[0];
-  }
+  if (candidates.length === 1) return candidates[0];
 
-  let bestGroup = groupsWithMaxMarked[0];
-  let minTotalTokens = bestGroup.length;
+  // 2. Tiebreaker: Minimize formality_score^2 + gender_score^2
+  const scoredCandidates = candidates.map((group) => {
+    const surfaceForm = group.map((t) => t.surface_form).join('');
+    const grammar = answerGrammar?.[surfaceForm];
+    // If no grammar metrics available, use a penalty score
+    const score =
+      grammar && grammar.formality_score !== undefined && grammar.gender_score !== undefined
+        ? grammar.formality_score ** 2 + grammar.gender_score ** 2
+        : 1000;
+    return { group, surfaceForm, score };
+  });
 
-  for (let i = 1; i < groupsWithMaxMarked.length; i++) {
-    const currentGroup = groupsWithMaxMarked[i];
-    if (currentGroup.length < minTotalTokens) {
-      bestGroup = currentGroup;
-      minTotalTokens = currentGroup.length;
+  const minScore = Math.min(...scoredCandidates.map((c) => c.score));
+  const scoreCandidates = scoredCandidates.filter((c) => Math.abs(c.score - minScore) < 1e-9);
+
+  if (scoreCandidates.length === 1) return scoreCandidates[0].group;
+
+  // 3. Tiebreaker: Lexically shortest
+  let best = scoreCandidates[0];
+  for (let i = 1; i < scoreCandidates.length; i++) {
+    if (scoreCandidates[i].surfaceForm.length < best.surfaceForm.length) {
+      best = scoreCandidates[i];
     }
   }
 
-  return bestGroup;
+  return best.group;
 }
 
 /**

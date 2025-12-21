@@ -142,9 +142,12 @@ suite('kana-control-logic', () => {
     });
 
     test('tiebreaker: selects group with fewest total tokens', () => {
-      const g1: Token[] = [{ marked: true } as any, { marked: false } as any];
-      const g2: Token[] = [{ marked: true } as any];
-      // Both have 1 marked. g2 has length 1, g1 has length 2. g2 wins.
+      const g1: Token[] = [
+        { marked: true, surface_form: 'AB' } as any,
+        { marked: false, surface_form: 'C' } as any
+      ];
+      const g2: Token[] = [{ marked: true, surface_form: 'A' } as any];
+      // Both have 1 marked. g2 is lexically shorter (length 1 vs 3). g2 wins.
       assert.equal(selectBestGroup([g1, g2]), g2);
     });
   });
