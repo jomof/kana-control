@@ -47,7 +47,7 @@
   "author": "Google LLC",
   "license": "BSD-3-Clause",
   "dependencies": {
-    "kotogram": "^0.0.18",
+    "kotogram": "^0.0.20",
     "lit": "^3.2.0",
     "wanakana": "^5.3.1"
   },
