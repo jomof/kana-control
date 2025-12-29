@@ -48,7 +48,7 @@
   "license": "BSD-3-Clause",
   "dependencies": {
     "kotogram": "^0.0.21",
-    "lit": "^3.2.0",
+    "lit": "^3.3.2",
     "wanakana": "^5.3.1"
   },
   "devDependencies": {
